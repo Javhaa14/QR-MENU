@@ -3,6 +3,6 @@ import type { UserRole } from "@qr-menu/shared-types";
 export interface RequestUser {
   userId: string;
   email: string;
-  restaurantId: string;
+  restaurantId: string | null;
   role: UserRole;
 }

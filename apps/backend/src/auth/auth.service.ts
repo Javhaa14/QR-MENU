@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
@@ -12,11 +13,9 @@ import type { AuthResponse, UserRole } from "@qr-menu/shared-types";
 
 import type { JwtPayload } from "../common/interfaces/jwt-payload.interface";
 import { Restaurant, type RestaurantDocument } from "../database/schemas/restaurant.schema";
-import { DEFAULT_THEME_CONFIG } from "../database/schemas/theme.defaults";
 import { User, type UserDocument } from "../database/schemas/user.schema";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
-import { createSlug } from "./utils/create-slug.util";
 
 @Injectable()
 export class AuthService {
@@ -35,20 +34,18 @@ export class AuthService {
       throw new BadRequestException("Email is already registered.");
     }
 
-    const slug = await this.generateUniqueSlug(dto.restaurantName);
-    const restaurant = await this.restaurantModel.create({
-      slug,
-      name: dto.restaurantName,
-      themeConfig: DEFAULT_THEME_CONFIG,
-      plan: "free",
-    });
+    const restaurant = await this.restaurantModel.findById(dto.restaurantId);
+
+    if (!restaurant) {
+      throw new NotFoundException("Restaurant not found.");
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.userModel.create({
       email: dto.email.toLowerCase(),
       passwordHash,
       restaurantId: restaurant.id,
-      role: "owner",
+      role: "restaurant_admin",
     });
 
     return this.buildAuthResponse(user.id, user.email, user.restaurantId, user.role);
@@ -70,23 +67,10 @@ export class AuthService {
     return this.buildAuthResponse(user.id, user.email, user.restaurantId, user.role);
   }
 
-  private async generateUniqueSlug(name: string) {
-    const baseSlug = createSlug(name);
-    let candidate = baseSlug;
-    let counter = 2;
-
-    while (await this.restaurantModel.exists({ slug: candidate })) {
-      candidate = `${baseSlug}-${counter}`;
-      counter += 1;
-    }
-
-    return candidate;
-  }
-
   private buildAuthResponse(
     userId: string,
     email: string,
-    restaurantId: string,
+    restaurantId: string | null,
     role: UserRole,
   ): AuthResponse {
     const payload: JwtPayload = {

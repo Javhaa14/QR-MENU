@@ -18,7 +18,10 @@ export class PublicService {
   ) {}
 
   async getPublicMenu(slug: string) {
-    const restaurant = await this.restaurantModel.findOne({ slug });
+    const restaurant = await this.restaurantModel.findOne({
+      slug,
+      isActive: true,
+    });
 
     if (!restaurant) {
       throw new NotFoundException("Restaurant not found.");
@@ -46,7 +49,10 @@ export class PublicService {
   }
 
   async generateQrBuffer(slug: string, tableNumber?: string) {
-    const restaurant = await this.restaurantModel.findOne({ slug });
+    const restaurant = await this.restaurantModel.findOne({
+      slug,
+      isActive: true,
+    });
 
     if (!restaurant) {
       throw new NotFoundException("Restaurant not found.");

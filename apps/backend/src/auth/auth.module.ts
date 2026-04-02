@@ -5,6 +5,7 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { PassportModule } from "@nestjs/passport";
 
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { RestaurantGuard } from "../common/guards/restaurant.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Restaurant, RestaurantSchema } from "../database/schemas/restaurant.schema";
 import { User, UserSchema } from "../database/schemas/user.schema";
@@ -31,7 +32,13 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
     ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, RolesGuard],
-  exports: [AuthService, JwtModule, JwtAuthGuard, RolesGuard],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    JwtAuthGuard,
+    RolesGuard,
+    RestaurantGuard,
+  ],
+  exports: [AuthService, JwtModule, JwtAuthGuard, RolesGuard, RestaurantGuard],
 })
 export class AuthModule {}

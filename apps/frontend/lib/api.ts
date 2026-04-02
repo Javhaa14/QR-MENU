@@ -14,30 +14,44 @@ type ApiFetchOptions = Omit<RequestInit, "body"> & {
 };
 
 async function parseApiResponse<T>(response: Response): Promise<T> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const rawBody = await response.text();
+  const hasJsonBody =
+    contentType.includes("application/json") ||
+    rawBody.trim().startsWith("{") ||
+    rawBody.trim().startsWith("[");
+
+  const parsedBody = (() => {
+    if (!rawBody || !hasJsonBody) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(rawBody) as T | { message?: string | string[] };
+    } catch {
+      return null;
+    }
+  })();
+
   if (!response.ok) {
     let message = `Request failed with status ${response.status}`;
 
-    try {
-      const data = (await response.json()) as { message?: string | string[] };
+    if (parsedBody && typeof parsedBody === "object" && "message" in parsedBody) {
+      const data = parsedBody as { message?: string | string[] };
       if (Array.isArray(data.message)) {
         message = data.message.join(", ");
       } else if (data.message) {
         message = data.message;
       }
-    } catch {
-      const text = await response.text();
-      if (text) {
-        message = text;
-      }
+    } else if (rawBody) {
+      message = rawBody;
     }
 
     throw new Error(message);
   }
 
-  const contentType = response.headers.get("content-type") ?? "";
-
-  if (contentType.includes("application/json")) {
-    return (await response.json()) as T;
+  if (parsedBody !== null) {
+    return parsedBody as T;
   }
 
   return undefined as T;

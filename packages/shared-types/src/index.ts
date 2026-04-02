@@ -7,7 +7,7 @@ export type SlotName =
 
 export type ThemeRadius = "none" | "sm" | "md" | "lg" | "full";
 
-export type UserRole = "owner" | "staff";
+export type UserRole = "superadmin" | "restaurant_admin";
 export type RestaurantPlan = "free" | "pro";
 export type OrderStatus =
   | "pending"
@@ -40,6 +40,7 @@ export interface Restaurant {
   logo?: string;
   themeConfig: ThemeConfig;
   plan?: RestaurantPlan;
+  isActive: boolean;
   createdAt?: string;
 }
 
@@ -89,7 +90,10 @@ export interface Order {
 }
 
 export interface PublicMenuResponse {
-  restaurant: Pick<Restaurant, "_id" | "name" | "slug" | "logo" | "themeConfig">;
+  restaurant: Pick<
+    Restaurant,
+    "_id" | "name" | "slug" | "logo" | "themeConfig" | "isActive"
+  >;
   menu: Menu;
 }
 
@@ -98,9 +102,20 @@ export interface AuthResponse {
   user: {
     _id: string;
     email: string;
-    restaurantId: string;
+    restaurantId: string | null;
     role: UserRole;
   };
+}
+
+export interface RestaurantListItem extends Restaurant {
+  ordersToday: number;
+}
+
+export interface StaffUser {
+  _id: string;
+  email: string;
+  restaurantId: string | null;
+  role: UserRole;
 }
 
 export interface RestaurantStats {

@@ -21,6 +21,7 @@ export class Restaurant {
 
   @Prop({
     type: raw({
+      _id: false,
       colors: raw({
         primary: { type: String, required: true },
         bg: { type: String, required: true },
@@ -47,6 +48,9 @@ export class Restaurant {
 
   @Prop({ enum: ["free", "pro"], default: "free" })
   plan!: "free" | "pro";
+
+  @Prop({ default: true })
+  isActive!: boolean;
 
   createdAt?: Date;
   updatedAt?: Date;

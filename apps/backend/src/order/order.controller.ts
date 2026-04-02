@@ -6,12 +6,12 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 
-import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { Public } from "../common/decorators/public.decorator";
 import { Roles } from "../common/decorators/roles.decorator";
-import type { RequestUser } from "../common/interfaces/request-user.interface";
+import { RestaurantGuard } from "../common/guards/restaurant.guard";
 import { CreatePublicOrderDto } from "./dto/create-public-order.dto";
 import { ListOrdersQueryDto } from "./dto/list-orders-query.dto";
 import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
@@ -27,21 +27,24 @@ export class OrderController {
     return this.orderService.createPublicOrder(dto);
   }
 
-  @Get("orders")
+  @Roles("superadmin", "restaurant_admin")
+  @UseGuards(RestaurantGuard)
+  @Get("orders/:restaurantId")
   listOrders(
-    @CurrentUser() user: RequestUser,
+    @Param("restaurantId") restaurantId: string,
     @Query() query: ListOrdersQueryDto,
   ) {
-    return this.orderService.listOrders(user.restaurantId, query.status);
+    return this.orderService.listOrders(restaurantId, query.status);
   }
 
-  @Roles("owner", "staff")
-  @Patch("orders/:id/status")
+  @Roles("superadmin", "restaurant_admin")
+  @UseGuards(RestaurantGuard)
+  @Patch("orders/:restaurantId/:orderId/status")
   updateStatus(
-    @CurrentUser() user: RequestUser,
-    @Param("id") orderId: string,
+    @Param("restaurantId") restaurantId: string,
+    @Param("orderId") orderId: string,
     @Body() dto: UpdateOrderStatusDto,
   ) {
-    return this.orderService.updateStatus(user.restaurantId, orderId, dto);
+    return this.orderService.updateStatus(restaurantId, orderId, dto);
   }
 }

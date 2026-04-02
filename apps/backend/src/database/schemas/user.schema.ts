@@ -12,11 +12,21 @@ export class User {
   @Prop({ required: true })
   passwordHash!: string;
 
-  @Prop({ required: true, index: true })
-  restaurantId!: string;
+  @Prop({
+    type: String,
+    default: null,
+    index: true,
+    required(this: User) {
+      return this.role === "restaurant_admin";
+    },
+  })
+  restaurantId!: string | null;
 
-  @Prop({ enum: ["owner", "staff"], default: "owner" })
-  role!: "owner" | "staff";
+  @Prop({
+    enum: ["superadmin", "restaurant_admin"],
+    default: "restaurant_admin",
+  })
+  role!: "superadmin" | "restaurant_admin";
 
   createdAt?: Date;
   updatedAt?: Date;

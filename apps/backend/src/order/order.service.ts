@@ -10,6 +10,7 @@ import type { OrderItem } from "@qr-menu/shared-types";
 
 import { Menu, type MenuDocument } from "../database/schemas/menu.schema";
 import { Order, type OrderDocument } from "../database/schemas/order.schema";
+import { Restaurant, type RestaurantDocument } from "../database/schemas/restaurant.schema";
 import { CreatePublicOrderDto } from "./dto/create-public-order.dto";
 import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
 import { OrderGateway } from "./order.gateway";
@@ -21,12 +22,23 @@ export class OrderService {
     private readonly orderModel: Model<OrderDocument>,
     @InjectModel(Menu.name)
     private readonly menuModel: Model<MenuDocument>,
+    @InjectModel(Restaurant.name)
+    private readonly restaurantModel: Model<RestaurantDocument>,
     private readonly orderGateway: OrderGateway,
   ) {}
 
   async createPublicOrder(dto: CreatePublicOrderDto) {
     if (dto.items.length === 0) {
       throw new BadRequestException("Order must contain at least one item.");
+    }
+
+    const restaurant = await this.restaurantModel.findOne({
+      _id: dto.restaurantId,
+      isActive: true,
+    });
+
+    if (!restaurant) {
+      throw new NotFoundException("Restaurant not found.");
     }
 
     const menu = await this.menuModel.findOne({

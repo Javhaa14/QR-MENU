@@ -9,9 +9,7 @@ import { MongooseModule } from "@nestjs/mongoose";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        uri:
-          configService.get<string>("MONGODB_URI") ??
-          "mongodb://localhost:27017/qrmenu",
+        uri: configService.get<string>("MONGODB_URI"),
       }),
     }),
   ],

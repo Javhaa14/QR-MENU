@@ -6,11 +6,11 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from "@nestjs/common";
 
-import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { Roles } from "../common/decorators/roles.decorator";
-import type { RequestUser } from "../common/interfaces/request-user.interface";
+import { RestaurantGuard } from "../common/guards/restaurant.guard";
 import { CreateCategoryDto } from "./dto/create-category.dto";
 import { CreateMenuItemDto } from "./dto/create-menu-item.dto";
 import { CreateMenuDto } from "./dto/create-menu.dto";
@@ -18,90 +18,103 @@ import { UpdateCategoryDto } from "./dto/update-category.dto";
 import { UpdateMenuItemDto } from "./dto/update-menu-item.dto";
 import { MenuService } from "./menu.service";
 
-@Controller("menu")
+@Controller("restaurants/:restaurantId/menus")
 export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
+  @Roles("superadmin", "restaurant_admin")
+  @UseGuards(RestaurantGuard)
   @Get()
-  listMenus(@CurrentUser() user: RequestUser) {
-    return this.menuService.listMenus(user.restaurantId);
+  listMenus(@Param("restaurantId") restaurantId: string) {
+    return this.menuService.listMenus(restaurantId);
   }
 
-  @Roles("owner")
+  @Roles("superadmin")
   @Post()
-  createMenu(@CurrentUser() user: RequestUser, @Body() dto: CreateMenuDto) {
-    return this.menuService.createMenu(user.restaurantId, dto);
+  createMenu(
+    @Param("restaurantId") restaurantId: string,
+    @Body() dto: CreateMenuDto,
+  ) {
+    return this.menuService.createMenu(restaurantId, dto);
   }
 
+  @Roles("superadmin", "restaurant_admin")
+  @UseGuards(RestaurantGuard)
   @Get(":id")
-  getMenu(@CurrentUser() user: RequestUser, @Param("id") menuId: string) {
-    return this.menuService.getMenu(user.restaurantId, menuId);
+  getMenu(
+    @Param("restaurantId") restaurantId: string,
+    @Param("id") menuId: string,
+  ) {
+    return this.menuService.getMenu(restaurantId, menuId);
   }
 
-  @Roles("owner")
+  @Roles("superadmin")
   @Patch(":id/activate")
-  activateMenu(@CurrentUser() user: RequestUser, @Param("id") menuId: string) {
-    return this.menuService.activateMenu(user.restaurantId, menuId);
+  activateMenu(
+    @Param("restaurantId") restaurantId: string,
+    @Param("id") menuId: string,
+  ) {
+    return this.menuService.activateMenu(restaurantId, menuId);
   }
 
-  @Roles("owner")
+  @Roles("superadmin")
   @Post(":id/categories")
   addCategory(
-    @CurrentUser() user: RequestUser,
+    @Param("restaurantId") restaurantId: string,
     @Param("id") menuId: string,
     @Body() dto: CreateCategoryDto,
   ) {
-    return this.menuService.addCategory(user.restaurantId, menuId, dto);
+    return this.menuService.addCategory(restaurantId, menuId, dto);
   }
 
-  @Roles("owner")
+  @Roles("superadmin")
   @Patch(":id/categories/:catId")
   updateCategory(
-    @CurrentUser() user: RequestUser,
+    @Param("restaurantId") restaurantId: string,
     @Param("id") menuId: string,
     @Param("catId") categoryId: string,
     @Body() dto: UpdateCategoryDto,
   ) {
     return this.menuService.updateCategory(
-      user.restaurantId,
+      restaurantId,
       menuId,
       categoryId,
       dto,
     );
   }
 
-  @Roles("owner")
+  @Roles("superadmin")
   @Delete(":id/categories/:catId")
   deleteCategory(
-    @CurrentUser() user: RequestUser,
+    @Param("restaurantId") restaurantId: string,
     @Param("id") menuId: string,
     @Param("catId") categoryId: string,
   ) {
-    return this.menuService.deleteCategory(user.restaurantId, menuId, categoryId);
+    return this.menuService.deleteCategory(restaurantId, menuId, categoryId);
   }
 
-  @Roles("owner")
+  @Roles("superadmin")
   @Post(":id/categories/:catId/items")
   addItem(
-    @CurrentUser() user: RequestUser,
+    @Param("restaurantId") restaurantId: string,
     @Param("id") menuId: string,
     @Param("catId") categoryId: string,
     @Body() dto: CreateMenuItemDto,
   ) {
-    return this.menuService.addItem(user.restaurantId, menuId, categoryId, dto);
+    return this.menuService.addItem(restaurantId, menuId, categoryId, dto);
   }
 
-  @Roles("owner")
+  @Roles("superadmin")
   @Patch(":id/categories/:catId/items/:itemId")
   updateItem(
-    @CurrentUser() user: RequestUser,
+    @Param("restaurantId") restaurantId: string,
     @Param("id") menuId: string,
     @Param("catId") categoryId: string,
     @Param("itemId") itemId: string,
     @Body() dto: UpdateMenuItemDto,
   ) {
     return this.menuService.updateItem(
-      user.restaurantId,
+      restaurantId,
       menuId,
       categoryId,
       itemId,
@@ -109,32 +122,33 @@ export class MenuController {
     );
   }
 
-  @Roles("owner")
+  @Roles("superadmin", "restaurant_admin")
+  @UseGuards(RestaurantGuard)
   @Patch(":id/categories/:catId/items/:itemId/toggle")
   toggleItemAvailability(
-    @CurrentUser() user: RequestUser,
+    @Param("restaurantId") restaurantId: string,
     @Param("id") menuId: string,
     @Param("catId") categoryId: string,
     @Param("itemId") itemId: string,
   ) {
     return this.menuService.toggleItemAvailability(
-      user.restaurantId,
+      restaurantId,
       menuId,
       categoryId,
       itemId,
     );
   }
 
-  @Roles("owner")
+  @Roles("superadmin")
   @Delete(":id/categories/:catId/items/:itemId")
   deleteItem(
-    @CurrentUser() user: RequestUser,
+    @Param("restaurantId") restaurantId: string,
     @Param("id") menuId: string,
     @Param("catId") categoryId: string,
     @Param("itemId") itemId: string,
   ) {
     return this.menuService.deleteItem(
-      user.restaurantId,
+      restaurantId,
       menuId,
       categoryId,
       itemId,

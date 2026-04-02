@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { AdminLayoutClient } from "@/components/admin/AdminLayoutClient";
+import { RestaurantAdminLayoutClient } from "@/components/admin/RestaurantAdminLayoutClient";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  return <AdminLayoutClient>{children}</AdminLayoutClient>;
+  return <RestaurantAdminLayoutClient>{children}</RestaurantAdminLayoutClient>;
 }

@@ -38,6 +38,38 @@ export const SLOT_LABELS: Record<SlotName, string> = {
   footer: "Footer",
 };
 
+export function sanitizeThemeConfig(value: unknown): ThemeConfig {
+  const input = (value ?? {}) as Partial<ThemeConfig> & {
+    colors?: Partial<ThemeConfig["colors"]> & { _id?: unknown };
+    components?: Partial<ThemeConfig["components"]> & { _id?: unknown };
+    _id?: unknown;
+  };
+
+  return {
+    colors: {
+      primary: input.colors?.primary ?? DEFAULT_THEME.colors.primary,
+      bg: input.colors?.bg ?? DEFAULT_THEME.colors.bg,
+      text: input.colors?.text ?? DEFAULT_THEME.colors.text,
+      accent: input.colors?.accent ?? DEFAULT_THEME.colors.accent,
+    },
+    font: input.font ?? DEFAULT_THEME.font,
+    borderRadius: input.borderRadius ?? DEFAULT_THEME.borderRadius,
+    darkMode: input.darkMode ?? DEFAULT_THEME.darkMode,
+    showImages: input.showImages ?? DEFAULT_THEME.showImages,
+    heroImage: input.heroImage ?? DEFAULT_THEME.heroImage,
+    components: {
+      hero: input.components?.hero ?? DEFAULT_THEME.components.hero,
+      categoryNav:
+        input.components?.categoryNav ?? DEFAULT_THEME.components.categoryNav,
+      itemCard: input.components?.itemCard ?? DEFAULT_THEME.components.itemCard,
+      categoryHeader:
+        input.components?.categoryHeader ??
+        DEFAULT_THEME.components.categoryHeader,
+      footer: input.components?.footer ?? DEFAULT_THEME.components.footer,
+    },
+  };
+}
+
 export function resolveRadiusValue(radius: ThemeConfig["borderRadius"]) {
   switch (radius) {
     case "none":
