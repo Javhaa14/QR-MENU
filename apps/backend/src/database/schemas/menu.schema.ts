@@ -12,7 +12,7 @@ export class MenuItemEntity {
   @Prop({ required: true, min: 0 })
   price!: number;
 
-  @Prop({ required: true, trim: true, default: "USD" })
+  @Prop({ required: true, trim: true, default: "MNT" })
   currency!: string;
 
   @Prop({ trim: true, default: "" })
@@ -51,9 +51,6 @@ export const CategorySchema = SchemaFactory.createForClass(CategoryEntity);
 export class Menu {
   @Prop({ required: true, index: true })
   restaurantId!: string;
-
-  @Prop({ required: true, trim: true })
-  name!: string;
 
   @Prop({ default: false })
   isActive!: boolean;

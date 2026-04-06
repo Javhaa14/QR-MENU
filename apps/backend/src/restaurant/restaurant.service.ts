@@ -12,7 +12,18 @@ import { User, type UserDocument } from "../database/schemas/user.schema";
 import { createSlug } from "../auth/utils/create-slug.util";
 import { CreateRestaurantDto } from "./dto/create-restaurant.dto";
 import { UpdateRestaurantDto } from "./dto/update-restaurant.dto";
+import { UpdateTablesDto } from "./dto/update-tables.dto";
 import { UpdateThemeDto } from "./dto/update-theme.dto";
+
+function normalizeTables(tables: string[]) {
+  return Array.from(
+    new Set(
+      tables
+        .map((table) => table.trim())
+        .filter(Boolean),
+    ),
+  );
+}
 
 @Injectable()
 export class RestaurantService {
@@ -69,6 +80,8 @@ export class RestaurantService {
       logo: restaurant.logo,
       themeConfig: restaurant.themeConfig,
       plan: restaurant.plan,
+      restaurantType: restaurant.restaurantType ?? "menu_only",
+      tables: restaurant.restaurantType === "order_enabled" ? restaurant.tables ?? [] : [],
       isActive: restaurant.isActive,
       createdAt: restaurant.createdAt?.toISOString(),
       ordersToday: ordersByRestaurantId.get(String(restaurant._id)) ?? 0,
@@ -85,15 +98,24 @@ export class RestaurantService {
 
   async createRestaurant(dto: CreateRestaurantDto) {
     const slug = await this.generateUniqueSlug(dto.slug ?? dto.name);
-
-    return this.restaurantModel.create({
+    const restaurant = await this.restaurantModel.create({
       slug,
       name: dto.name,
       logo: dto.logo ?? "",
       plan: dto.plan,
+      restaurantType: dto.restaurantType ?? "menu_only",
+      tables: [],
       isActive: true,
       themeConfig: DEFAULT_THEME_CONFIG,
     });
+
+    await this.menuModel.create({
+      restaurantId: restaurant.id,
+      isActive: true,
+      categories: [],
+    });
+
+    return restaurant;
   }
 
   async updateRestaurant(restaurantId: string, dto: UpdateRestaurantDto) {
@@ -135,6 +157,20 @@ export class RestaurantService {
       components: dto.components,
     };
 
+    await restaurant.save();
+    return restaurant;
+  }
+
+  async updateTables(restaurantId: string, dto: UpdateTablesDto) {
+    const restaurant = await this.findByIdOrThrow(restaurantId);
+
+    if (restaurant.restaurantType !== "order_enabled") {
+      restaurant.tables = [];
+      await restaurant.save();
+      return restaurant;
+    }
+
+    restaurant.tables = normalizeTables(dto.tables);
     await restaurant.save();
     return restaurant;
   }

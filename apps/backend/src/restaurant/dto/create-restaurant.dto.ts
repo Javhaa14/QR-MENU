@@ -13,6 +13,10 @@ export class CreateRestaurantDto {
   plan!: "free" | "pro";
 
   @IsOptional()
+  @IsIn(["menu_only", "order_enabled"])
+  restaurantType?: "menu_only" | "order_enabled";
+
+  @IsOptional()
   @IsString()
   logo?: string;
 }

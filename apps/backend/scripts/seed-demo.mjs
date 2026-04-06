@@ -43,7 +43,6 @@ function createMenuDocument(restaurantId) {
   return {
     _id: new mongoose.Types.ObjectId(),
     restaurantId,
-    name: "Demo Menu",
     isActive: true,
     createdAt: now,
     updatedAt: now,
@@ -273,6 +272,8 @@ async function main() {
         logo: "",
         themeConfig,
         plan: "pro",
+        restaurantType: "order_enabled",
+        tables: ["1", "2", "4", "5"],
         isActive: true,
         updatedAt: now,
       },

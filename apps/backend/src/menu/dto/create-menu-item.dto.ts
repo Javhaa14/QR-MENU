@@ -21,8 +21,9 @@ export class CreateMenuItemDto {
   @Min(0)
   price!: number;
 
+  @IsOptional()
   @IsString()
-  currency!: string;
+  currency?: string;
 
   @IsOptional()
   @IsString()

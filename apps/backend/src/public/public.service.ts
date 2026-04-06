@@ -6,6 +6,7 @@ import * as QRCode from "qrcode";
 
 import { Menu, type MenuDocument } from "../database/schemas/menu.schema";
 import { Restaurant, type RestaurantDocument } from "../database/schemas/restaurant.schema";
+import { applyMenuDefaults } from "../menu/menu-normalizer";
 
 @Injectable()
 export class PublicService {
@@ -29,11 +30,14 @@ export class PublicService {
 
     const menu = await this.menuModel.findOne({
       restaurantId: restaurant.id,
-      isActive: true,
-    });
+    }).sort({ isActive: -1, updatedAt: -1, createdAt: -1 });
 
     if (!menu) {
-      throw new NotFoundException("Active menu not found.");
+      throw new NotFoundException("Menu not found.");
+    }
+
+    if (applyMenuDefaults(menu)) {
+      await menu.save();
     }
 
     return {
@@ -43,6 +47,8 @@ export class PublicService {
         name: restaurant.name,
         logo: restaurant.logo,
         themeConfig: restaurant.themeConfig,
+        isActive: restaurant.isActive,
+        restaurantType: restaurant.restaurantType ?? "menu_only",
       },
       menu,
     };
@@ -58,6 +64,20 @@ export class PublicService {
       throw new NotFoundException("Restaurant not found.");
     }
 
+    const normalizedTableNumber = tableNumber?.trim();
+
+    if (normalizedTableNumber && restaurant.restaurantType === "menu_only") {
+      throw new NotFoundException("Table QR codes are not enabled for this restaurant.");
+    }
+
+    if (
+      normalizedTableNumber &&
+      restaurant.restaurantType === "order_enabled" &&
+      !(restaurant.tables ?? []).includes(normalizedTableNumber)
+    ) {
+      throw new NotFoundException("Table not found.");
+    }
+
     const baseUrl =
       this.configService.get<string>("PUBLIC_MENU_BASE_URL") ??
       this.configService.get<string>("FRONTEND_URL") ??
@@ -65,8 +85,8 @@ export class PublicService {
 
     const url = new URL(`/menu/${slug}`, baseUrl);
 
-    if (tableNumber) {
-      url.searchParams.set("table", tableNumber);
+    if (normalizedTableNumber) {
+      url.searchParams.set("table", normalizedTableNumber);
     }
 
     return QRCode.toBuffer(url.toString(), {

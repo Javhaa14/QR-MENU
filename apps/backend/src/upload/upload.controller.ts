@@ -15,7 +15,7 @@ import { UploadService } from "./upload.service";
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
-  @Roles("superadmin")
+  @Roles("superadmin", "restaurant_admin")
   @Post("image")
   @UseInterceptors(
     FileInterceptor("file", {

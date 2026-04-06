@@ -49,6 +49,12 @@ export class Restaurant {
   @Prop({ enum: ["free", "pro"], default: "free" })
   plan!: "free" | "pro";
 
+  @Prop({ enum: ["menu_only", "order_enabled"], default: "menu_only" })
+  restaurantType!: "menu_only" | "order_enabled";
+
+  @Prop({ type: [String], default: [] })
+  tables!: string[];
+
   @Prop({ default: true })
   isActive!: boolean;
 

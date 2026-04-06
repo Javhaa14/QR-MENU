@@ -11,6 +11,7 @@ import type { OrderItem } from "@qr-menu/shared-types";
 import { Menu, type MenuDocument } from "../database/schemas/menu.schema";
 import { Order, type OrderDocument } from "../database/schemas/order.schema";
 import { Restaurant, type RestaurantDocument } from "../database/schemas/restaurant.schema";
+import { applyMenuDefaults } from "../menu/menu-normalizer";
 import { CreatePublicOrderDto } from "./dto/create-public-order.dto";
 import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
 import { OrderGateway } from "./order.gateway";
@@ -41,13 +42,26 @@ export class OrderService {
       throw new NotFoundException("Restaurant not found.");
     }
 
+    const normalizedTableNumber = dto.tableNumber?.trim() ?? "";
+
+    if (
+      normalizedTableNumber &&
+      restaurant.restaurantType === "order_enabled" &&
+      !(restaurant.tables ?? []).includes(normalizedTableNumber)
+    ) {
+      throw new BadRequestException("Selected table is not configured.");
+    }
+
     const menu = await this.menuModel.findOne({
       restaurantId: dto.restaurantId,
-      isActive: true,
-    });
+    }).sort({ isActive: -1, updatedAt: -1, createdAt: -1 });
 
     if (!menu) {
-      throw new NotFoundException("Active menu not found.");
+      throw new NotFoundException("Menu not found.");
+    }
+
+    if (applyMenuDefaults(menu)) {
+      await menu.save();
     }
 
     const menuItems = menu.categories.flatMap((category) => category.items);
@@ -82,7 +96,7 @@ export class OrderService {
 
     const order = await this.orderModel.create({
       restaurantId: dto.restaurantId,
-      tableNumber: dto.tableNumber ?? "",
+      tableNumber: normalizedTableNumber,
       items: normalizedItems,
       status: "pending",
       totalPrice,

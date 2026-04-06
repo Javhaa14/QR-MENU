@@ -5,6 +5,7 @@ import { Roles } from "../common/decorators/roles.decorator";
 import type { RequestUser } from "../common/interfaces/request-user.interface";
 import { CreateRestaurantDto } from "./dto/create-restaurant.dto";
 import { UpdateRestaurantDto } from "./dto/update-restaurant.dto";
+import { UpdateTablesDto } from "./dto/update-tables.dto";
 import { UpdateThemeDto } from "./dto/update-theme.dto";
 import { RestaurantService } from "./restaurant.service";
 
@@ -22,6 +23,24 @@ export class RestaurantController {
   @Get("me")
   getOwnRestaurant(@CurrentUser() user: RequestUser) {
     return this.restaurantService.getOwnRestaurant(user.restaurantId!);
+  }
+
+  @Roles("restaurant_admin")
+  @Patch("me/tables")
+  updateOwnTables(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdateTablesDto,
+  ) {
+    return this.restaurantService.updateTables(user.restaurantId!, dto);
+  }
+
+  @Roles("restaurant_admin")
+  @Patch("me/theme")
+  updateOwnTheme(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdateThemeDto,
+  ) {
+    return this.restaurantService.updateTheme(user.restaurantId!, dto);
   }
 
   @Roles("superadmin")
@@ -58,6 +77,15 @@ export class RestaurantController {
     @Body() dto: UpdateThemeDto,
   ) {
     return this.restaurantService.updateTheme(restaurantId, dto);
+  }
+
+  @Roles("superadmin")
+  @Patch(":id/tables")
+  updateTables(
+    @Param("id") restaurantId: string,
+    @Body() dto: UpdateTablesDto,
+  ) {
+    return this.restaurantService.updateTables(restaurantId, dto);
   }
 
   @Roles("superadmin")

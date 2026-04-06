@@ -1,14 +1,15 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { Model, isValidObjectId } from "mongoose";
 
 import { Menu, type MenuDocument } from "../database/schemas/menu.schema";
 import { CreateCategoryDto } from "./dto/create-category.dto";
 import { CreateMenuItemDto } from "./dto/create-menu-item.dto";
-import { CreateMenuDto } from "./dto/create-menu.dto";
+import { applyMenuDefaults } from "./menu-normalizer";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
 import { UpdateMenuItemDto } from "./dto/update-menu-item.dto";
 
@@ -20,18 +21,11 @@ export class MenuService {
   ) {}
 
   async listMenus(restaurantId: string) {
-    return this.menuModel.find({ restaurantId }).sort({ updatedAt: -1 });
+    return [await this.ensurePrimaryMenu(restaurantId)];
   }
 
-  async createMenu(restaurantId: string, dto: CreateMenuDto) {
-    const existingCount = await this.menuModel.countDocuments({ restaurantId });
-
-    return this.menuModel.create({
-      restaurantId,
-      name: dto.name,
-      isActive: existingCount === 0,
-      categories: [],
-    });
+  async createMenu(restaurantId: string) {
+    return this.ensurePrimaryMenu(restaurantId);
   }
 
   async getMenu(restaurantId: string, menuId: string) {
@@ -39,17 +33,29 @@ export class MenuService {
   }
 
   async activateMenu(restaurantId: string, menuId: string) {
-    await this.findMenuOrThrow(restaurantId, menuId);
-    await this.menuModel.updateMany({ restaurantId }, { isActive: false });
+    const menu = await this.findMenuOrThrow(restaurantId, menuId);
 
-    return this.menuModel.findByIdAndUpdate(
-      menuId,
-      { isActive: true },
-      { new: true },
-    );
+    if (!menu.isActive) {
+      await this.menuModel.updateMany(
+        {
+          restaurantId,
+          _id: { $ne: menu._id },
+        },
+        { isActive: false },
+      );
+
+      menu.isActive = true;
+      await menu.save();
+    }
+
+    return menu;
   }
 
-  async addCategory(restaurantId: string, menuId: string, dto: CreateCategoryDto) {
+  async addCategory(
+    restaurantId: string,
+    menuId: string,
+    dto: CreateCategoryDto,
+  ) {
     const menu = await this.findMenuOrThrow(restaurantId, menuId);
     menu.categories.push({
       name: dto.name,
@@ -88,7 +94,11 @@ export class MenuService {
     return menu;
   }
 
-  async deleteCategory(restaurantId: string, menuId: string, categoryId: string) {
+  async deleteCategory(
+    restaurantId: string,
+    menuId: string,
+    categoryId: string,
+  ) {
     const menu = await this.findMenuOrThrow(restaurantId, menuId);
     const nextCategories = menu.categories.filter(
       (entry) => String(entry._id) !== categoryId,
@@ -99,6 +109,7 @@ export class MenuService {
     }
 
     menu.categories = nextCategories as never;
+    menu.markModified("categories");
     await menu.save();
     return menu;
   }
@@ -116,7 +127,7 @@ export class MenuService {
       name: dto.name,
       description: dto.description ?? "",
       price: dto.price,
-      currency: dto.currency,
+      currency: dto.currency ?? "MNT",
       image: dto.image ?? "",
       tags: dto.tags ?? [],
       allergens: dto.allergens ?? [],
@@ -182,29 +193,77 @@ export class MenuService {
   ) {
     const menu = await this.findMenuOrThrow(restaurantId, menuId);
     const category = this.findCategoryOrThrow(menu, categoryId);
-    const nextItems = category.items.filter((entry) => String(entry._id) !== itemId);
+    const nextItems = category.items.filter(
+      (entry) => String(entry._id) !== itemId,
+    );
 
     if (nextItems.length === category.items.length) {
       throw new NotFoundException("Menu item not found.");
     }
 
     category.items = nextItems as never;
+    menu.markModified("categories");
     await menu.save();
     return menu;
   }
 
   private async findMenuOrThrow(restaurantId: string, menuId: string) {
+    if (!isValidObjectId(menuId)) {
+      throw new BadRequestException("Menu id is invalid.");
+    }
+
     const menu = await this.menuModel.findOne({ _id: menuId, restaurantId });
 
     if (!menu) {
       throw new NotFoundException("Menu not found.");
     }
 
+    return this.normalizeMenu(menu);
+  }
+
+  private async ensurePrimaryMenu(restaurantId: string) {
+    const menu = await this.menuModel
+      .findOne({ restaurantId })
+      .sort({ isActive: -1, updatedAt: -1, createdAt: -1 });
+
+    if (!menu) {
+      return this.menuModel.create({
+        restaurantId,
+        isActive: true,
+        categories: [],
+      });
+    }
+
+    await this.normalizeMenu(menu);
+
+    await this.menuModel.updateMany(
+      {
+        restaurantId,
+        _id: { $ne: menu._id },
+      },
+      { isActive: false },
+    );
+
+    if (!menu.isActive) {
+      menu.isActive = true;
+      await menu.save();
+    }
+
+    return menu;
+  }
+
+  private async normalizeMenu(menu: MenuDocument) {
+    if (applyMenuDefaults(menu)) {
+      await menu.save();
+    }
+
     return menu;
   }
 
   private findCategoryOrThrow(menu: MenuDocument, categoryId: string) {
-    const category = menu.categories.find((entry) => String(entry._id) === categoryId);
+    const category = menu.categories.find(
+      (entry) => String(entry._id) === categoryId,
+    );
 
     if (!category) {
       throw new NotFoundException("Category not found.");
