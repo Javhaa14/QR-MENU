@@ -11,7 +11,11 @@ import {
   PricePill,
 } from "./shared";
 
-export default function Magazine({ item, onAdd }: ItemCardProps) {
+export default function Magazine({
+  item,
+  onAdd,
+  showAddButton = true,
+}: ItemCardProps) {
   return (
     <CardSurface className="relative min-h-[360px]">
       <div className="absolute inset-0">
@@ -21,7 +25,7 @@ export default function Magazine({ item, onAdd }: ItemCardProps) {
       <div className="relative flex min-h-[360px] flex-col justify-between p-5 text-white">
         <div className="flex items-start justify-between gap-4">
           <div className="max-w-[70%] space-y-2">
-            <p className="text-xs uppercase tracking-[0.28em] text-white/60">Signature</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-white/60">Онцлох</p>
             <h3 className="font-display text-3xl leading-tight">{item.name}</h3>
           </div>
           <PricePill
@@ -35,9 +39,11 @@ export default function Magazine({ item, onAdd }: ItemCardProps) {
           <div className="flex flex-wrap gap-2">
             <ItemMeta item={item} />
           </div>
-          <div className="flex justify-end">
-            <AddButton onClick={() => onAdd(item)} label="Add dish" />
-          </div>
+          {showAddButton && onAdd ? (
+            <div className="flex justify-end">
+              <AddButton onClick={() => onAdd(item)} label="Хоол нэмэх" />
+            </div>
+          ) : null}
         </div>
       </div>
     </CardSurface>

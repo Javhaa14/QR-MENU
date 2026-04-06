@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { Restaurant } from "@qr-menu/shared-types";
 
 import { apiFetch, clientApiUrl } from "@/lib/api";
-import { DEFAULT_QR_TABLES, getRestaurantAdminContext } from "@/lib/portal";
+import {
+  getRestaurantAdminContext,
+  sortTableValues,
+} from "@/lib/portal";
 
 function downloadImage(url: string, filename: string) {
   const link = document.createElement("a");
@@ -14,31 +17,76 @@ function downloadImage(url: string, filename: string) {
   link.click();
 }
 
+function normalizeTable(value: string) {
+  return value.trim();
+}
+
 export default function AdminQrPage() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [tables] = useState<string[]>(DEFAULT_QR_TABLES);
+  const [tables, setTables] = useState<string[]>([]);
+  const [newTable, setNewTable] = useState("");
+  const [savingTables, setSavingTables] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  async function loadRestaurant() {
     const context = getRestaurantAdminContext();
 
     if (!context) {
       return;
     }
 
-    void apiFetch<Restaurant>("/restaurants/me", { token: context.token })
-      .then((response) => {
-        setRestaurant(response);
-        setError(null);
-      })
-      .catch((requestError) => {
-        setError(
-          requestError instanceof Error
-            ? requestError.message
-            : "Unable to load QR codes.",
-        );
+    try {
+      const response = await apiFetch<Restaurant>("/restaurants/me", {
+        token: context.token,
       });
+      setRestaurant(response);
+      setTables(sortTableValues(response.tables ?? []));
+      setError(null);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "QR кодын мэдээллийг ачаалж чадсангүй.",
+      );
+    }
+  }
+
+  useEffect(() => {
+    void loadRestaurant();
   }, []);
+
+  async function saveTables(nextTables: string[]) {
+    const context = getRestaurantAdminContext();
+
+    if (!context || !restaurant || restaurant.restaurantType !== "order_enabled") {
+      return;
+    }
+
+    setSavingTables(true);
+
+    try {
+      const response = await apiFetch<Restaurant>("/restaurants/me/tables", {
+        token: context.token,
+        method: "PATCH",
+        body: {
+          tables: nextTables,
+        },
+      });
+
+      setRestaurant(response);
+      setTables(sortTableValues(response.tables ?? []));
+      setNewTable("");
+      setError(null);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Ширээний мэдээллийг шинэчилж чадсангүй.",
+      );
+    } finally {
+      setSavingTables(false);
+    }
+  }
 
   const baseQrUrl = useMemo(() => {
     return restaurant?.slug
@@ -46,18 +94,20 @@ export default function AdminQrPage() {
       : null;
   }, [restaurant?.slug]);
 
+  const isOrderEnabled = restaurant?.restaurantType === "order_enabled";
+
   return (
     <section className="grid gap-6">
-      <header className="rounded-[2rem] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(104,180,154,0.18),transparent_32%),linear-gradient(135deg,#173233,#102021)] p-6 text-white shadow-velvet">
-        <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-          QR Codes
+      <header className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
+        <p className="text-xs uppercase tracking-[0.24em] text-black/45">
+          QR код
         </p>
-        <h1 className="mt-3 font-display text-5xl">
-          Download and place
+        <h1 className="mt-3 font-display text-5xl text-black">
+          Татаж аваад байрлуулах
         </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-white/68">
-          Print-ready QR codes for the current restaurant only. This view never
-          exposes any other tenant or editing controls.
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-black/60">
+          Энэ рестораны хэвлэхэд бэлэн QR-ууд. Зөвхөн меню горимд нэг нийтийн QR,
+          харин захиалгатай ресторан бол ширээ бүрийн QR-аа эндээс удирдана.
         </p>
       </header>
 
@@ -69,15 +119,15 @@ export default function AdminQrPage() {
 
       {restaurant && baseQrUrl ? (
         <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-          <section className="rounded-[1.7rem] border border-white/8 bg-white/90 p-6 shadow-velvet">
+          <section className="rounded-[1.7rem] border border-black/10 bg-white p-6 shadow-[0_12px_30px_rgba(0,0,0,0.04)]">
             <p className="text-xs uppercase tracking-[0.24em] text-black/45">
-              Main menu QR
+              Үндсэн менюгийн QR
             </p>
             <div className="mt-5 grid gap-5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={baseQrUrl}
-                alt="Restaurant QR"
+                alt="Рестораны QR"
                 className="mx-auto aspect-square w-full max-w-xs rounded-[1.5rem] border border-black/10 bg-white p-4"
               />
               <button
@@ -85,62 +135,115 @@ export default function AdminQrPage() {
                 onClick={() =>
                   downloadImage(baseQrUrl, `${restaurant.slug}-menu-qr.png`)
                 }
-                className="rounded-full bg-[#231810] px-5 py-3 text-sm font-semibold text-white"
+                className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white"
               >
-                Download main QR
+                Үндсэн QR татах
               </button>
             </div>
           </section>
 
-          <section className="rounded-[1.7rem] border border-white/8 bg-[#132426] p-6 text-white shadow-velvet">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                  Table codes
-                </p>
-                <h2 className="mt-2 font-display text-3xl">Per-table QR set</h2>
-              </div>
-              <p className="text-sm text-white/55">
-                Fixed set for download-only staff use
-              </p>
-            </div>
+          {isOrderEnabled ? (
+            <section className="rounded-[1.7rem] border border-black/10 bg-white p-6 text-black shadow-[0_12px_30px_rgba(0,0,0,0.04)]">
+              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-black/45">
+                    Ширээний QR
+                  </p>
+                  <h2 className="mt-2 font-display text-3xl">Ширээ удирдах</h2>
+                </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {tables.map((table) => {
-                const url = `${clientApiUrl}/public/qr/${restaurant.slug}/table/${table}`;
-                return (
-                  <article
-                    key={table}
-                    className="rounded-[1.3rem] border border-white/10 bg-white/5 p-4"
+                <div className="flex gap-2">
+                  <input
+                    value={newTable}
+                    onChange={(event) => setNewTable(event.target.value)}
+                    placeholder="Ширээний дугаар"
+                    className="rounded-full border border-black/10 bg-[#fafafa] px-4 py-2 text-sm text-black outline-none placeholder:text-black/35"
+                  />
+                  <button
+                    type="button"
+                    disabled={savingTables}
+                    onClick={() => {
+                      const nextValue = normalizeTable(newTable);
+
+                      if (!nextValue || tables.includes(nextValue)) {
+                        return;
+                      }
+
+                      void saveTables(sortTableValues([...tables, nextValue]));
+                    }}
+                    className="rounded-full bg-black px-4 py-2 text-sm text-white disabled:opacity-60"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={url}
-                      alt={`QR for table ${table}`}
-                      className="aspect-square w-full rounded-[1rem] bg-white p-3"
-                    />
-                    <div className="mt-4 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                          Table
-                        </p>
-                        <p className="text-lg font-semibold">{table}</p>
+                    Нэмэх
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {tables.map((table) => {
+                  const url = `${clientApiUrl}/public/qr/${restaurant.slug}/table/${table}`;
+                  return (
+                    <article
+                      key={table}
+                      className="rounded-[1.3rem] border border-black/10 bg-[#fafafa] p-4"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`QR for table ${table}`}
+                        className="aspect-square w-full rounded-[1rem] bg-white p-3"
+                      />
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-black/45">
+                            Ширээ
+                          </p>
+                          <p className="text-lg font-semibold">{table}</p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              downloadImage(url, `${restaurant.slug}-table-${table}.png`)
+                            }
+                            className="rounded-full border border-black/10 px-4 py-2 text-sm"
+                          >
+                            Татах
+                          </button>
+                          <button
+                            type="button"
+                            disabled={savingTables}
+                            onClick={() =>
+                              void saveTables(tables.filter((entry) => entry !== table))
+                            }
+                            className="rounded-full border border-black/10 px-4 py-2 text-sm text-black/65 disabled:opacity-60"
+                          >
+                            Устгах
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          downloadImage(url, `${restaurant.slug}-table-${table}.png`)
-                        }
-                        className="rounded-full border border-white/10 px-4 py-2 text-sm"
-                      >
-                        Download
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {tables.length === 0 ? (
+                <div className="mt-6 rounded-[1.2rem] border border-dashed border-black/10 bg-[#fafafa] px-5 py-8 text-center text-sm text-black/55">
+                  Ширээ нэмснээр ширээ тус бүрийн QR үүснэ.
+                </div>
+              ) : null}
+            </section>
+          ) : (
+            <section className="rounded-[1.7rem] border border-black/10 bg-white p-6 text-black shadow-[0_12px_30px_rgba(0,0,0,0.04)]">
+              <p className="text-xs uppercase tracking-[0.24em] text-black/45">
+                Зөвхөн меню горим
+              </p>
+              <h2 className="mt-2 font-display text-3xl">Нэг QR хангалттай</h2>
+              <p className="mt-4 max-w-xl text-sm leading-7 text-black/62">
+                Энэ ресторан ширээ тус бүрээр захиалга авдаггүй тул зөвхөн нэг
+                нийтийн QR ашиглана.
+              </p>
+            </section>
+          )}
         </div>
       ) : null}
     </section>

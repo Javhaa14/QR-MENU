@@ -28,15 +28,15 @@ export function FloatingCartBar({ slug }: { slug: string }) {
       >
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-white/70">
-            Cart
+            Сагс
           </p>
           <p className="text-sm font-medium">
-            {itemCount} item{itemCount === 1 ? "" : "s"}
+            {itemCount} бүтээгдэхүүн
           </p>
         </div>
         <div className="text-right">
           <p className="text-xs uppercase tracking-[0.2em] text-white/70">
-            Total
+            Нийт
           </p>
           <p className="text-sm font-semibold">{formatCurrency(totalPrice)}</p>
         </div>

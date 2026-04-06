@@ -5,10 +5,13 @@ export type SlotName =
   | "categoryHeader"
   | "footer";
 
+export type ViewportMode = "responsive" | "mobile";
+
 export type ThemeRadius = "none" | "sm" | "md" | "lg" | "full";
 
 export type UserRole = "superadmin" | "restaurant_admin";
 export type RestaurantPlan = "free" | "pro";
+export type RestaurantType = "menu_only" | "order_enabled";
 export type OrderStatus =
   | "pending"
   | "preparing"
@@ -40,6 +43,8 @@ export interface Restaurant {
   logo?: string;
   themeConfig: ThemeConfig;
   plan?: RestaurantPlan;
+  restaurantType: RestaurantType;
+  tables?: string[];
   isActive: boolean;
   createdAt?: string;
 }
@@ -66,7 +71,6 @@ export interface Category {
 export interface Menu {
   _id?: string;
   restaurantId: string;
-  name: string;
   isActive?: boolean;
   categories: Category[];
 }
@@ -92,7 +96,7 @@ export interface Order {
 export interface PublicMenuResponse {
   restaurant: Pick<
     Restaurant,
-    "_id" | "name" | "slug" | "logo" | "themeConfig" | "isActive"
+    "_id" | "name" | "slug" | "logo" | "themeConfig" | "isActive" | "restaurantType"
   >;
   menu: Menu;
 }
@@ -126,6 +130,8 @@ export interface RestaurantStats {
 
 export interface HeroProps {
   restaurant: Restaurant;
+  featuredItem?: MenuItem;
+  viewportMode?: ViewportMode;
 }
 
 export interface CategoryNavProps {
@@ -140,9 +146,12 @@ export interface CategoryHeaderProps {
 
 export interface ItemCardProps {
   item: MenuItem;
-  onAdd: (item: MenuItem) => void;
+  onAdd?: (item: MenuItem) => void;
+  showAddButton?: boolean;
+  viewportMode?: ViewportMode;
 }
 
 export interface FooterProps {
   restaurant: Restaurant;
+  viewportMode?: ViewportMode;
 }

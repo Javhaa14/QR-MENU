@@ -1,7 +1,9 @@
 import type { PublicMenuResponse } from "@qr-menu/shared-types";
 
-import { serverApiFetch } from "@/lib/api";
+import { MenuRenderer } from "@/components/menu/MenuRenderer";
 import { MenuPageClient } from "@/components/menu/MenuPageClient";
+import { serverApiFetch } from "@/lib/api";
+import { CartProvider } from "@/providers/CartProvider";
 
 function getTableFromSearchParams(
   value?: string | string[],
@@ -19,16 +21,28 @@ export default async function MenuSlugPage({
   const data = await serverApiFetch<PublicMenuResponse>(
     `/public/menu/${params.slug}`,
     {
-      next: { revalidate: 60 },
+      cache: "no-store",
     },
   );
 
+  if (data.restaurant.restaurantType === "menu_only") {
+    return (
+      <MenuRenderer
+        restaurant={data.restaurant}
+        menu={data.menu}
+        showAddButton={false}
+      />
+    );
+  }
+
   return (
-    <MenuPageClient
-      restaurant={data.restaurant}
-      menu={data.menu}
-      slug={params.slug}
-      initialTableNumber={getTableFromSearchParams(searchParams?.table)}
-    />
+    <CartProvider>
+      <MenuPageClient
+        restaurant={data.restaurant}
+        menu={data.menu}
+        slug={params.slug}
+        initialTableNumber={getTableFromSearchParams(searchParams?.table)}
+      />
+    </CartProvider>
   );
 }

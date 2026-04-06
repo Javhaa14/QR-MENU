@@ -13,7 +13,7 @@ import { formatCurrency } from "@/lib/format";
 
 export function AddButton({
   onClick,
-  label = "Add",
+  label = "Нэмэх",
 }: {
   onClick: () => void;
   label?: string;
@@ -81,15 +81,15 @@ export function ItemMeta({
   compact?: boolean;
 }) {
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${compact ? "text-[11px]" : "text-xs"}`}>
+    <div className={`flex flex-wrap items-center gap-2 ${compact ? "text-[10px]" : "text-xs"}`}>
       {item.tags.map((tag) => (
         <span
           key={tag}
-          className="rounded-full px-2.5 py-1 font-medium"
+          className="rounded-md px-2.5 py-1 font-bold uppercase tracking-[0.14em]"
           style={{
             background:
-              "color-mix(in srgb, var(--color-accent) 22%, white 78%)",
-            color: "var(--color-text)",
+              "color-mix(in srgb, var(--color-text) 8%, white 92%)",
+            color: "color-mix(in srgb, var(--color-text) 74%, white 26%)",
           }}
         >
           {tag}
@@ -97,14 +97,14 @@ export function ItemMeta({
       ))}
       {item.allergens.length > 0 ? (
         <span
-          className="rounded-full px-2.5 py-1 font-medium"
+          className="rounded-md px-2.5 py-1 font-bold uppercase tracking-[0.14em]"
           style={{
             background:
-              "color-mix(in srgb, var(--color-primary) 16%, white 84%)",
-            color: "var(--color-text)",
+              "color-mix(in srgb, var(--color-primary) 14%, white 86%)",
+            color: "color-mix(in srgb, var(--color-primary) 72%, black 28%)",
           }}
         >
-          ⚠ allergens
+          Харшил
         </span>
       ) : null}
     </div>
@@ -116,7 +116,7 @@ export function Description({ text }: { text?: string }) {
     return null;
   }
 
-  return <p className="text-sm leading-6 text-black/62">{text}</p>;
+  return <p className="text-sm leading-6 text-black/56">{text}</p>;
 }
 
 export function CardSurface({
@@ -157,7 +157,7 @@ export function ItemImage({
         }}
       >
         <span className={`${overlay ? "text-white/70" : "text-black/35"} text-xs uppercase tracking-[0.24em]`}>
-          No image
+          Зураггүй
         </span>
       </div>
     );

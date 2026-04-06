@@ -42,7 +42,7 @@ export default function RestaurantStaffPage() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to load staff accounts.",
+          : "Ажилтны бүртгэлүүдийг ачаалж чадсангүй.",
       );
     }
   }
@@ -81,7 +81,7 @@ export default function RestaurantStaffPage() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to create the staff account.",
+          : "Ажилтны эрх үүсгэж чадсангүй.",
       );
     } finally {
       setSaving(false);
@@ -90,16 +90,16 @@ export default function RestaurantStaffPage() {
 
   return (
     <section className="grid gap-6">
-      <header className="rounded-[2rem] border border-black/10 bg-[#f8f1e7] p-6 shadow-velvet">
+      <header className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
         <p className="text-xs uppercase tracking-[0.24em] text-black/45">
-          Staff Provisioning
+          Ажилтны эрх
         </p>
         <h1 className="mt-3 font-display text-5xl text-[#231810]">
-          {restaurant?.name ?? "Restaurant"} staff accounts
+          {restaurant?.name ?? "Ресторан"} ажилтны эрхүүд
         </h1>
         <p className="mt-4 max-w-2xl text-sm leading-7 text-black/60">
-          Create and review `restaurant_admin` accounts for this restaurant
-          only. Superadmin remains the sole role that can provision new staff.
+          Энэ ресторанд хамаарах `restaurant_admin` эрхүүдийг эндээс үүсгэж,
+          шалгана. Шинэ ажилтан нээх эрх зөвхөн супер админд байна.
         </p>
       </header>
 
@@ -112,36 +112,36 @@ export default function RestaurantStaffPage() {
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <form
           onSubmit={handleSubmit}
-          className="grid gap-5 rounded-[1.7rem] border border-black/10 bg-white/75 p-6 shadow-velvet"
+          className="grid gap-5 rounded-[1.7rem] border border-black/10 bg-white p-6 shadow-[0_12px_30px_rgba(0,0,0,0.04)]"
         >
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-black/45">
-              Create account
+              Эрх үүсгэх
             </p>
             <h2 className="mt-3 font-display text-3xl text-[#231810]">
-              New restaurant admin
+              Шинэ ресторан админ
             </h2>
           </div>
 
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-black/65">Email</span>
+            <span className="text-sm font-medium text-black/65">И-мэйл</span>
             <input
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               type="email"
-              placeholder="manager@restaurant.com"
-              className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 outline-none"
+              placeholder="manager@restaurant.mn"
+              className="rounded-[1rem] border border-black/10 bg-[#fafafa] px-4 py-3 outline-none"
               required
             />
           </label>
 
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-black/65">Password</span>
+            <span className="text-sm font-medium text-black/65">Нууц үг</span>
             <input
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               type="password"
-              className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 outline-none"
+              className="rounded-[1rem] border border-black/10 bg-[#fafafa] px-4 py-3 outline-none"
               required
             />
           </label>
@@ -149,15 +149,15 @@ export default function RestaurantStaffPage() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-full bg-[#231810] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {saving ? "Creating..." : "Create restaurant admin"}
+            {saving ? "Үүсгэж байна..." : "Ресторан админ үүсгэх"}
           </button>
         </form>
 
-        <section className="rounded-[1.7rem] border border-black/10 bg-white/75 p-6 shadow-velvet">
+        <section className="rounded-[1.7rem] border border-black/10 bg-white p-6 shadow-[0_12px_30px_rgba(0,0,0,0.04)]">
           <p className="text-xs uppercase tracking-[0.24em] text-black/45">
-            Existing staff
+            Одоо байгаа ажилтнууд
           </p>
           <div className="mt-5 grid gap-3">
             {staff.map((entry) => (
@@ -169,11 +169,13 @@ export default function RestaurantStaffPage() {
                   <div>
                     <p className="font-medium text-[#231810]">{entry.email}</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.2em] text-black/45">
-                      {entry.role.replace("_", " ")}
+                      {entry.role === "restaurant_admin"
+                        ? "ресторан админ"
+                        : "супер админ"}
                     </p>
                   </div>
                   <span className="rounded-full border border-black/10 px-3 py-1 text-xs text-black/55">
-                    scoped to this restaurant
+                    энэ ресторанд хамаарна
                   </span>
                 </div>
               </article>
@@ -181,8 +183,8 @@ export default function RestaurantStaffPage() {
           </div>
 
           {staff.length === 0 ? (
-            <div className="mt-5 rounded-[1.1rem] border border-dashed border-black/10 bg-[#faf5ef] px-4 py-8 text-center text-sm text-black/55">
-              No staff accounts yet for this restaurant.
+            <div className="mt-5 rounded-[1.1rem] border border-dashed border-black/10 bg-[#fafafa] px-4 py-8 text-center text-sm text-black/55">
+              Энэ ресторанд одоогоор ажилтны эрх алга байна.
             </div>
           ) : null}
         </section>

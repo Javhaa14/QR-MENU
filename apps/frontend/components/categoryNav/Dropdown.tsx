@@ -16,7 +16,7 @@ export default function Dropdown({
   return (
     <label className="grid gap-2">
       <span className="text-xs uppercase tracking-[0.24em] text-black/45">
-        Jump to Category
+        Ангилал руу шилжих
       </span>
       <select
         value={activeCategoryId}

@@ -4,19 +4,31 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
+import type { RestaurantType } from "@qr-menu/shared-types";
+
+import { apiFetch } from "@/lib/api";
 import {
   clearStoredAuth,
   getAuthTokenPayload,
   getStoredToken,
 } from "@/lib/auth";
+import { getRestaurantAdminContext } from "@/lib/portal";
 
 import { CenteredStatusMessage } from "@/components/portal/CenteredStatusMessage";
+import { PortalBackButton } from "@/components/admin/PortalBackButton";
 
-const navItems = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/orders", label: "Orders" },
-  { href: "/admin/availability", label: "Availability" },
-  { href: "/admin/qr", label: "QR Codes" },
+const orderEnabledNavItems = [
+  { href: "/admin", label: "Хянах самбар" },
+  { href: "/admin/menu", label: "Меню студи" },
+  { href: "/admin/orders", label: "Захиалга" },
+  { href: "/admin/availability", label: "Бэлэн байдал" },
+  { href: "/admin/qr", label: "QR код" },
+];
+
+const menuOnlyNavItems = [
+  { href: "/admin/menu", label: "Меню студи" },
+  { href: "/admin/availability", label: "Бэлэн байдал" },
+  { href: "/admin/qr", label: "QR код" },
 ];
 
 export function RestaurantAdminLayoutClient({
@@ -28,8 +40,12 @@ export function RestaurantAdminLayoutClient({
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [portalMessage, setPortalMessage] = useState<string | null>(null);
+  const [restaurantType, setRestaurantType] =
+    useState<RestaurantType | null>(null);
   const isLoginRoute = pathname === "/admin/login";
   const payload = getAuthTokenPayload();
+  const navItems =
+    restaurantType === "menu_only" ? menuOnlyNavItems : orderEnabledNavItems;
 
   useEffect(() => {
     const token = getStoredToken();
@@ -49,18 +65,65 @@ export function RestaurantAdminLayoutClient({
 
     if (payload?.role === "superadmin") {
       clearStoredAuth();
-      setPortalMessage("Please use the staff login portal.");
+      setPortalMessage("Энэ хэсэг нь рестораны ажилтны нэвтрэх хэсэг байна.");
       return;
     }
 
     if (payload?.role !== "restaurant_admin") {
       clearStoredAuth();
-      setPortalMessage("This portal is only available to restaurant staff.");
+      setPortalMessage("Энэ портал зөвхөн рестораны ажилтанд нээлттэй.");
       return;
     }
 
-    setReady(true);
+    const context = getRestaurantAdminContext();
+
+    if (!context) {
+      clearStoredAuth();
+      router.replace("/admin/login");
+      return;
+    }
+
+    async function loadRestaurantType() {
+      try {
+        const nextContext = getRestaurantAdminContext();
+
+        if (!nextContext) {
+          clearStoredAuth();
+          router.replace("/admin/login");
+          return;
+        }
+
+        const restaurant = await apiFetch<{
+          restaurantType: RestaurantType;
+        }>("/restaurants/me", {
+          token: nextContext.token,
+        });
+
+        setRestaurantType(restaurant.restaurantType);
+        setReady(true);
+        setErrorFreePath(restaurant.restaurantType, pathname, router);
+      } catch (requestError) {
+        setPortalMessage(
+          requestError instanceof Error
+            ? requestError.message
+            : "Рестораны хандалтыг шалгаж чадсангүй.",
+        );
+      }
+    }
+
+    void loadRestaurantType();
   }, [isLoginRoute, payload?.role, router]);
+
+  useEffect(() => {
+    if (isLoginRoute || !restaurantType) {
+      return;
+    }
+
+    setErrorFreePath(restaurantType, pathname, router);
+  }, [isLoginRoute, pathname, restaurantType, router]);
+
+  const basePath = restaurantType === "menu_only" ? "/admin/menu" : "/admin";
+  const showBackButton = !isLoginRoute && pathname !== basePath;
 
   if (isLoginRoute) {
     return <>{children}</>;
@@ -69,27 +132,30 @@ export function RestaurantAdminLayoutClient({
   if (portalMessage) {
     return (
       <CenteredStatusMessage
-        title="Access cleared"
+        title="Хандалт шинэчлэгдлээ"
         description={portalMessage}
       />
     );
   }
 
   if (!ready) {
-    return <div className="min-h-screen bg-[#0f1717]" />;
+    return <div className="min-h-screen bg-[#f7f7f5]" />;
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1717] text-[#f5f5ef]">
+    <div className="min-h-screen bg-[#f7f7f5] text-black">
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-4 lg:grid-cols-[260px_1fr] lg:px-6">
-        <aside className="rounded-[2rem] border border-white/6 bg-[#151f1f] p-5 shadow-velvet lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
-          <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-            Staff Portal
+        <aside className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_40px_rgba(0,0,0,0.04)] lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
+          <p className="text-xs uppercase tracking-[0.24em] text-black/45">
+            Ажилтны портал
           </p>
-          <h1 className="mt-3 font-display text-4xl">Service Flow</h1>
-          <p className="mt-3 text-sm leading-7 text-white/58">
-            Orders, availability, and table-ready QR tools for a single
-            restaurant team.
+          <h1 className="mt-3 font-display text-4xl text-black">
+            Үйлчилгээний самбар
+          </h1>
+          <p className="mt-3 text-sm leading-7 text-black/58">
+            {restaurantType === "menu_only"
+              ? "Меню, загвар, харагдац, QR-аа нэг рестораны түвшинд удирдана."
+              : "Захиалга, харагдац, ширээний QR кодыг нэг багийн түвшинд удирдана."}
           </p>
 
           <nav className="mt-8 grid gap-2">
@@ -101,8 +167,8 @@ export function RestaurantAdminLayoutClient({
                   href={item.href}
                   className="rounded-[1.15rem] px-4 py-3 text-sm transition"
                   style={{
-                    background: active ? "rgba(148, 196, 170, 0.18)" : "transparent",
-                    color: active ? "#f5f5ef" : "rgba(245,245,239,0.74)",
+                    background: active ? "#111111" : "transparent",
+                    color: active ? "#ffffff" : "rgba(0,0,0,0.66)",
                   }}
                 >
                   {item.label}
@@ -117,14 +183,39 @@ export function RestaurantAdminLayoutClient({
               clearStoredAuth();
               router.replace("/admin/login");
             }}
-            className="mt-8 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70"
+            className="mt-8 rounded-full border border-black/10 px-4 py-2 text-sm text-black/70"
           >
-            Logout
+            Гарах
           </button>
         </aside>
 
-        <main>{children}</main>
+        <main className="min-w-0">
+          {showBackButton ? (
+            <div className="mb-4">
+              <PortalBackButton fallbackHref={basePath} />
+            </div>
+          ) : null}
+          {children}
+        </main>
       </div>
     </div>
   );
+}
+
+function setErrorFreePath(
+  restaurantType: RestaurantType,
+  pathname: string,
+  router: ReturnType<typeof useRouter>,
+) {
+  if (
+    restaurantType === "menu_only" &&
+    (pathname === "/admin" || pathname.startsWith("/admin/orders"))
+  ) {
+    router.replace("/admin/menu");
+    return;
+  }
+
+  if (restaurantType !== "menu_only" && pathname.startsWith("/admin/menu")) {
+    return;
+  }
 }

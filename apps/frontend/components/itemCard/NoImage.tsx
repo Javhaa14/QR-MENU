@@ -10,7 +10,11 @@ import {
   PricePill,
 } from "./shared";
 
-export default function NoImage({ item, onAdd }: ItemCardProps) {
+export default function NoImage({
+  item,
+  onAdd,
+  showAddButton = true,
+}: ItemCardProps) {
   return (
     <CardSurface>
       <div className="flex h-full flex-col gap-4 p-5">
@@ -22,9 +26,11 @@ export default function NoImage({ item, onAdd }: ItemCardProps) {
           <PricePill price={item.price} currency={item.currency} />
         </div>
         <ItemMeta item={item} />
-        <div className="mt-auto flex justify-end">
-          <AddButton onClick={() => onAdd(item)} />
-        </div>
+        {showAddButton && onAdd ? (
+          <div className="mt-auto flex justify-end">
+            <AddButton onClick={() => onAdd(item)} />
+          </div>
+        ) : null}
       </div>
     </CardSurface>
   );

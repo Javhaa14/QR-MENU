@@ -10,8 +10,7 @@ import { getRestaurantAdminContext } from "@/lib/portal";
 
 export default function AdminAvailabilityPage() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [menus, setMenus] = useState<Menu[]>([]);
-  const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<Menu | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
 
@@ -31,20 +30,13 @@ export default function AdminAvailabilityPage() {
       ]);
 
       setRestaurant(restaurantResponse);
-      setMenus(menuResponse);
-      setSelectedMenuId((current) => {
-        if (current && menuResponse.some((menu) => menu._id === current)) {
-          return current;
-        }
-
-        return menuResponse.find((menu) => menu.isActive)?._id ?? menuResponse[0]?._id ?? null;
-      });
+      setMenu(menuResponse[0] ?? null);
       setError(null);
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to load availability controls.",
+          : "Харагдацын удирдлагыг ачаалж чадсангүй.",
       );
     }
   }
@@ -53,35 +45,35 @@ export default function AdminAvailabilityPage() {
     void load();
   }, []);
 
-  const selectedMenu = useMemo(
-    () => menus.find((menu) => menu._id === selectedMenuId) ?? null,
-    [menus, selectedMenuId],
+  const totalItems = useMemo(
+    () => menu?.categories.reduce((count, category) => count + category.items.length, 0) ?? 0,
+    [menu],
   );
 
   async function toggleAvailability(categoryId: string, itemId?: string) {
     const context = getRestaurantAdminContext();
 
-    if (!context || !selectedMenu?._id || !itemId) {
+    if (!context || !menu?._id || !itemId) {
       return;
     }
 
     setSavingItemId(itemId);
 
     try {
-      await apiFetch(
-        `/restaurants/${context.restaurantId}/menus/${selectedMenu._id}/categories/${categoryId}/items/${itemId}/toggle`,
+      const updatedMenu = await apiFetch<Menu>(
+        `/restaurants/${context.restaurantId}/menus/${menu._id}/categories/${categoryId}/items/${itemId}/toggle`,
         {
           token: context.token,
           method: "PATCH",
         },
       );
 
-      await load();
+      setMenu(updatedMenu);
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to update item availability.",
+          : "Хоолны харагдацыг шинэчилж чадсангүй.",
       );
     } finally {
       setSavingItemId(null);
@@ -90,16 +82,17 @@ export default function AdminAvailabilityPage() {
 
   return (
     <section className="grid gap-6">
-      <header className="rounded-[2rem] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(104,180,154,0.18),transparent_32%),linear-gradient(135deg,#173233,#102021)] p-6 text-white shadow-velvet">
-        <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-          Availability
+      <header className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
+        <p className="text-xs uppercase tracking-[0.24em] text-black/45">
+          Бэлэн байдал
         </p>
-        <h1 className="mt-3 font-display text-5xl">
-          {restaurant?.name ?? "Restaurant"} item availability
+        <h1 className="mt-3 font-display text-5xl text-black">
+          {restaurant?.name ?? "Ресторан"} хоолнуудын харагдац
         </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-white/68">
-          This staff portal only controls what can be ordered right now. Names,
-          pricing, and menu structure stay locked to the superadmin workspace.
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-black/60">
+          {restaurant?.restaurantType === "menu_only"
+            ? "Эндээс хоолнуудыг зочинд харагдах эсэхийг хурдан асааж, унтраана. Бүтэн засварыг Меню студи дээр хийнэ."
+            : "Энд зөвхөн яг одоо захиалж болох эсэхийг удирдана. Нэр, үнэ, бүтэц нь супер админ хэсэгт хадгалагдана."}
         </p>
       </header>
 
@@ -109,47 +102,36 @@ export default function AdminAvailabilityPage() {
         </div>
       ) : null}
 
-      {menus.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {menus.map((menu) => {
-            const active = menu._id === selectedMenuId;
-
-            return (
-              <button
-                key={menu._id}
-                type="button"
-                onClick={() => setSelectedMenuId(menu._id ?? null)}
-                className="rounded-full px-4 py-2 text-sm"
-                style={{
-                  background: active ? "rgba(104,180,154,0.2)" : "rgba(255,255,255,0.05)",
-                  color: active ? "#f5f5ef" : "rgba(245,245,239,0.75)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                {menu.name}
-                {menu.isActive ? " • Active" : ""}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {selectedMenu ? (
+      {menu ? (
         <div className="grid gap-4">
-          {selectedMenu.categories.map((category) => (
+          <section className="rounded-[1.7rem] border border-black/10 bg-white p-5 text-black shadow-[0_12px_30px_rgba(0,0,0,0.04)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-black/45">
+                  Меню
+                </p>
+                <h2 className="mt-2 font-display text-3xl">Зочинд харагдах хоолнууд</h2>
+              </div>
+              <div className="rounded-full border border-black/10 px-4 py-2 text-sm text-black/68">
+                {menu.categories.length} ангилал • {totalItems} хоол
+              </div>
+            </div>
+          </section>
+
+          {menu.categories.map((category) => (
             <section
               key={category._id}
-              className="rounded-[1.7rem] border border-white/8 bg-white/5 p-5 text-white shadow-velvet"
+              className="rounded-[1.7rem] border border-black/10 bg-white p-5 text-black shadow-[0_12px_30px_rgba(0,0,0,0.04)]"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                    Category
+                  <p className="text-xs uppercase tracking-[0.24em] text-black/45">
+                    Ангилал
                   </p>
                   <h2 className="mt-2 font-display text-3xl">{category.name}</h2>
                 </div>
-                <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/55">
-                  {category.items.length} items
+                <span className="rounded-full border border-black/10 px-3 py-1 text-xs text-black/55">
+                  {category.items.length} хоол
                 </span>
               </div>
 
@@ -157,7 +139,7 @@ export default function AdminAvailabilityPage() {
                 {category.items.map((item) => (
                   <article
                     key={item._id}
-                    className="grid gap-3 rounded-[1.2rem] border border-white/8 bg-[#132426] p-4 md:grid-cols-[1fr_auto]"
+                    className="grid gap-3 rounded-[1.2rem] border border-black/10 bg-[#fafafa] p-4 md:grid-cols-[1fr_auto]"
                   >
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -166,18 +148,18 @@ export default function AdminAvailabilityPage() {
                           className="rounded-full px-3 py-1 text-[11px]"
                           style={{
                             background: item.isAvailable
-                              ? "rgba(34,197,94,0.16)"
-                              : "rgba(239,68,68,0.16)",
-                            color: item.isAvailable ? "#bbf7d0" : "#fecaca",
+                              ? "rgba(17,17,17,0.08)"
+                              : "rgba(17,17,17,0.04)",
+                            color: item.isAvailable ? "#111111" : "rgba(17,17,17,0.58)",
                           }}
                         >
-                          {item.isAvailable ? "Available" : "Hidden from guests"}
+                          {item.isAvailable ? "Зочинд харагдаж байна" : "Зочдоос нуугдсан"}
                         </span>
                       </div>
-                      <p className="mt-2 text-sm leading-6 text-white/60">
-                        {item.description || "No description"}
+                      <p className="mt-2 text-sm leading-6 text-black/60">
+                        {item.description || "Тайлбар алга"}
                       </p>
-                      <p className="mt-3 text-sm text-white/72">
+                      <p className="mt-3 text-sm text-black/72">
                         {formatCurrency(item.price, item.currency)}
                       </p>
                     </div>
@@ -188,13 +170,13 @@ export default function AdminAvailabilityPage() {
                         void toggleAvailability(category._id ?? "", item._id)
                       }
                       disabled={savingItemId === item._id}
-                      className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 disabled:opacity-60"
+                      className="rounded-full bg-black px-4 py-2 text-sm text-white disabled:opacity-60"
                     >
                       {savingItemId === item._id
-                        ? "Saving..."
+                        ? "Хадгалж байна..."
                         : item.isAvailable
-                          ? "Disable"
-                          : "Enable"}
+                          ? "Нуух"
+                          : "Харагдуулах"}
                     </button>
                   </article>
                 ))}
@@ -203,8 +185,8 @@ export default function AdminAvailabilityPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-[1.7rem] border border-dashed border-white/10 bg-white/5 px-6 py-16 text-center text-sm text-white/55">
-          No menu is available for availability controls yet.
+        <div className="rounded-[1.7rem] border border-dashed border-black/10 bg-white px-6 py-16 text-center text-sm text-black/55">
+          Бэлэн байдлыг удирдах меню одоогоор алга байна.
         </div>
       )}
     </section>

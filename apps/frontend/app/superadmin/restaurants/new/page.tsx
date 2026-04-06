@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 
-import type { Restaurant, RestaurantPlan } from "@qr-menu/shared-types";
+import type {
+  Restaurant,
+  RestaurantPlan,
+  RestaurantType,
+} from "@qr-menu/shared-types";
 
 import { apiFetch } from "@/lib/api";
 import { createSlugPreview } from "@/lib/slug";
@@ -13,6 +17,8 @@ export default function NewRestaurantPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [plan, setPlan] = useState<RestaurantPlan>("free");
+  const [restaurantType, setRestaurantType] =
+    useState<RestaurantType>("menu_only");
   const [logo, setLogo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -38,6 +44,7 @@ export default function NewRestaurantPage() {
         body: {
           name,
           plan,
+          restaurantType,
           logo: logo.trim() || undefined,
           slug: slugPreview,
         },
@@ -48,7 +55,7 @@ export default function NewRestaurantPage() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to create restaurant.",
+          : "Ресторан үүсгэж чадсангүй.",
       );
     } finally {
       setSaving(false);
@@ -57,71 +64,86 @@ export default function NewRestaurantPage() {
 
   return (
     <section className="grid gap-6">
-      <header className="rounded-[2rem] border border-black/10 bg-[#f8f1e7] p-6 shadow-velvet">
+      <header className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
         <p className="text-xs uppercase tracking-[0.24em] text-black/45">
-          New Restaurant
+          Шинэ ресторан
         </p>
         <h1 className="mt-3 font-display text-5xl text-[#231810]">
-          Create a new tenant
+          Шинэ ресторан үүсгэх
         </h1>
         <p className="mt-4 max-w-2xl text-sm leading-7 text-black/60">
-          Set the restaurant basics first. You’ll land in the menu editor right
-          after creation so you can start building the guest-facing experience.
+          Эхлээд үндсэн мэдээллээ оруулна. Үүсмэгц нь шууд меню студи рүү орж,
+          зочинд харагдах туршлагыг бүрдүүлж эхэлнэ.
         </p>
       </header>
 
       <form
         onSubmit={handleSubmit}
-        className="grid gap-6 rounded-[2rem] border border-black/10 bg-white/75 p-6 shadow-velvet lg:grid-cols-[0.85fr_1.15fr]"
+        className="grid gap-6 rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_12px_30px_rgba(0,0,0,0.04)] lg:grid-cols-[0.85fr_1.15fr]"
       >
-        <section className="rounded-[1.6rem] bg-[#211913] p-6 text-white">
+        <section className="rounded-[1.6rem] bg-black p-6 text-white">
           <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-            URL Preview
+            Хаягийн харагдац
           </p>
           <h2 className="mt-3 font-display text-4xl">
-            /menu/{slugPreview || "your-restaurant"}
+            /menu/{slugPreview || "restaurant-ner"}
           </h2>
           <p className="mt-4 text-sm leading-7 text-white/62">
-            Slugs are generated from the restaurant name and become the public QR
-            menu URL.
+            Энэ хаяг рестораны нэрээс автоматаар үүсэж нийтийн QR менюгийн линк болно.
           </p>
         </section>
 
         <section className="grid gap-5">
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-black/65">Restaurant name</span>
+            <span className="text-sm font-medium text-black/65">Рестораны нэр</span>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Cinder & Salt"
-              className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 outline-none"
+              placeholder="Жишээ нь: Хаан бууз"
+              className="rounded-[1rem] border border-black/10 bg-[#fafafa] px-4 py-3 outline-none"
               required
             />
           </label>
 
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-black/65">Plan</span>
+            <span className="text-sm font-medium text-black/65">План</span>
             <select
               value={plan}
               onChange={(event) =>
                 setPlan(event.target.value as RestaurantPlan)
               }
-              className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 outline-none"
+              className="rounded-[1rem] border border-black/10 bg-[#fafafa] px-4 py-3 outline-none"
             >
-              <option value="free">Free</option>
+              <option value="free">Үнэгүй</option>
               <option value="pro">Pro</option>
             </select>
           </label>
 
           <label className="grid gap-2">
             <span className="text-sm font-medium text-black/65">
-              Logo URL (optional)
+              Рестораны төрөл
+            </span>
+            <select
+              value={restaurantType}
+              onChange={(event) =>
+                setRestaurantType(event.target.value as RestaurantType)
+              }
+              className="rounded-[1rem] border border-black/10 bg-[#fafafa] px-4 py-3 outline-none"
+            >
+              <option value="menu_only">Зөвхөн меню</option>
+              <option value="order_enabled">Захиалга авдаг</option>
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-black/65">
+              Логоны URL (заавал биш)
             </span>
             <input
               value={logo}
               onChange={(event) => setLogo(event.target.value)}
               placeholder="https://..."
-              className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 outline-none"
+              className="rounded-[1rem] border border-black/10 bg-[#fafafa] px-4 py-3 outline-none"
             />
           </label>
 
@@ -134,9 +156,9 @@ export default function NewRestaurantPage() {
           <button
             type="submit"
             disabled={saving || !slugPreview}
-            className="rounded-full bg-[#231810] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {saving ? "Creating..." : "Create restaurant"}
+            {saving ? "Үүсгэж байна..." : "Ресторан үүсгэх"}
           </button>
         </section>
       </form>

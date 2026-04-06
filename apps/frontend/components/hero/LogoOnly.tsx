@@ -14,7 +14,7 @@ export default function LogoOnly({ restaurant }: HeroProps) {
       </div>
       <div className="space-y-2">
         <h1 className="font-display text-4xl text-ink">{restaurant.name}</h1>
-        <p className="text-sm text-black/55">Choose your favorites and send them straight to the kitchen.</p>
+        <p className="text-sm text-black/55">Дуртай хоолоо сонгоод гал тогоо руу шууд илгээнэ үү.</p>
       </div>
     </section>
   );

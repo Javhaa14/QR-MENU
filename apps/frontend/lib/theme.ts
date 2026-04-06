@@ -31,12 +31,46 @@ export const DEFAULT_THEME: ThemeConfig = {
 };
 
 export const SLOT_LABELS: Record<SlotName, string> = {
-  hero: "Hero",
-  categoryNav: "Category Nav",
-  itemCard: "Item Card",
-  categoryHeader: "Category Header",
-  footer: "Footer",
+  hero: "Толгой хэсэг",
+  categoryNav: "Ангиллын навигаци",
+  itemCard: "Хоолны карт",
+  categoryHeader: "Ангиллын гарчиг",
+  footer: "Хөл хэсэг",
 };
+
+const SLOT_VARIANT_LABELS: Record<SlotName, Record<string, string>> = {
+  hero: {
+    fullBleed: "Дэлгэц дүүрэн",
+    compact: "Компакт",
+    logoOnly: "Лого төвтэй",
+  },
+  categoryNav: {
+    scrollTabs: "Гүйлгэдэг товч",
+    dropdown: "Сонголтын жагсаалт",
+    sidebarList: "Хажуу жагсаалт",
+  },
+  itemCard: {
+    imageTop: "Дээрээ зурагтай",
+    imageLeft: "Зүүн зурагтай",
+    minimalList: "Энгийн жагсаалт",
+    magazine: "Онцлох постер",
+    noImage: "Зураггүй",
+  },
+  categoryHeader: {
+    banner: "Баннер",
+    underline: "Доогуур зураастай",
+    minimal: "Энгийн",
+  },
+  footer: {
+    minimal: "Энгийн",
+    full: "Дэлгэрэнгүй",
+    hidden: "Нуух",
+  },
+};
+
+export function getSlotVariantLabel(slot: SlotName, variant: string) {
+  return SLOT_VARIANT_LABELS[slot]?.[variant] ?? variant;
+}
 
 export function sanitizeThemeConfig(value: unknown): ThemeConfig {
   const input = (value ?? {}) as Partial<ThemeConfig> & {

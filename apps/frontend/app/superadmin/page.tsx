@@ -52,7 +52,8 @@ export default function SuperadminDashboardPage() {
 
         for (const restaurant of response) {
           if (restaurant._id) {
-            nextDrafts[restaurant._id] = current[restaurant._id] ?? createDraft(restaurant);
+            nextDrafts[restaurant._id] =
+              current[restaurant._id] ?? createDraft(restaurant);
           }
         }
 
@@ -63,7 +64,7 @@ export default function SuperadminDashboardPage() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to load restaurants.",
+          : "Ресторануудыг ачаалж чадсангүй.",
       );
     } finally {
       setLoading(false);
@@ -116,7 +117,7 @@ export default function SuperadminDashboardPage() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to save restaurant changes.",
+          : "Рестораны өөрчлөлтийг хадгалж чадсангүй.",
       );
     } finally {
       setSavingId(null);
@@ -150,7 +151,7 @@ export default function SuperadminDashboardPage() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to update restaurant status.",
+          : "Рестораны мэдээллийг шинэчилж чадсангүй.",
       );
     } finally {
       setSavingId(null);
@@ -159,33 +160,33 @@ export default function SuperadminDashboardPage() {
 
   return (
     <section className="grid gap-6">
-      <header className="overflow-hidden rounded-[2rem] border border-black/10 bg-[#f8f1e7] p-6 shadow-velvet">
+      <header className="overflow-hidden rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-black/45">
-              Superadmin Dashboard
+              Супер админы самбар
             </p>
             <h1 className="mt-3 font-display text-5xl text-[#231810]">
-              Restaurant control plane
+              Рестораны удирдлагын төв
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-black/60">
-              Manage tenant setup, keep each restaurant active or paused, and
-              jump straight into menus, staff, themes, or QR operations.
+              Ресторан бүрийн идэвх, тохиргоо, меню, ажилтан, загвар, QR
+              ажиллагааг эндээс удирдана.
             </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[1.3rem] border border-black/10 bg-white/70 px-5 py-4">
+            <div className="rounded-[1.3rem] border border-black/10 bg-[#fafafa] px-5 py-4">
               <p className="text-xs uppercase tracking-[0.2em] text-black/45">
-                Restaurants
+                Ресторан
               </p>
               <p className="mt-2 text-3xl font-semibold text-[#231810]">
                 {restaurants.length}
               </p>
             </div>
-            <div className="rounded-[1.3rem] border border-black/10 bg-white/70 px-5 py-4">
+            <div className="rounded-[1.3rem] border border-black/10 bg-[#fafafa] px-5 py-4">
               <p className="text-xs uppercase tracking-[0.2em] text-black/45">
-                Active
+                Идэвхтэй
               </p>
               <p className="mt-2 text-3xl font-semibold text-[#231810]">
                 {restaurants.filter((restaurant) => restaurant.isActive).length}
@@ -193,9 +194,9 @@ export default function SuperadminDashboardPage() {
             </div>
             <Link
               href="/superadmin/restaurants/new"
-              className="grid place-items-center rounded-[1.3rem] bg-[#231810] px-5 py-4 text-sm font-semibold text-white"
+              className="grid place-items-center rounded-[1.3rem] bg-black px-5 py-4 text-sm font-semibold text-white"
             >
-              Create restaurant
+              Ресторан нэмэх
             </Link>
           </div>
         </div>
@@ -207,17 +208,18 @@ export default function SuperadminDashboardPage() {
         </div>
       ) : null}
 
-      <section className="overflow-hidden rounded-[2rem] border border-black/10 bg-white/70 shadow-velvet">
+      <section className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-[0_12px_30px_rgba(0,0,0,0.04)]">
         <div className="overflow-x-auto">
           <table className="min-w-full border-collapse">
             <thead>
-              <tr className="border-b border-black/10 bg-[#f6eee4] text-left text-xs uppercase tracking-[0.2em] text-black/45">
-                <th className="px-5 py-4 font-medium">Restaurant</th>
+              <tr className="border-b border-black/10 bg-[#fafafa] text-left text-xs uppercase tracking-[0.2em] text-black/45">
+                <th className="px-5 py-4 font-medium">Ресторан</th>
                 <th className="px-5 py-4 font-medium">Slug</th>
-                <th className="px-5 py-4 font-medium">Plan</th>
-                <th className="px-5 py-4 font-medium">Status</th>
-                <th className="px-5 py-4 font-medium">Orders today</th>
-                <th className="px-5 py-4 font-medium">Actions</th>
+                <th className="px-5 py-4 font-medium">Төлөв</th>
+                <th className="px-5 py-4 font-medium">Төрөл</th>
+
+                <th className="px-5 py-4 font-medium">Өнөөдрийн захиалга</th>
+                <th className="px-5 py-4 font-medium">Үйлдэл</th>
               </tr>
             </thead>
             <tbody>
@@ -228,21 +230,31 @@ export default function SuperadminDashboardPage() {
                 const isSaving = savingId === restaurantId;
 
                 return (
-                  <tr key={restaurantId} className="border-b border-black/8 align-top">
+                  <tr
+                    key={restaurantId}
+                    className="border-b border-black/8 align-top"
+                  >
                     <td className="px-5 py-5">
                       {isEditing ? (
                         <input
                           value={draft.name}
                           onChange={(event) =>
-                            updateDraft(restaurantId, "name", event.target.value)
+                            updateDraft(
+                              restaurantId,
+                              "name",
+                              event.target.value,
+                            )
                           }
                           className="w-full rounded-[0.95rem] border border-black/10 bg-white px-4 py-3 text-sm outline-none"
                         />
                       ) : (
                         <div>
-                          <p className="font-medium text-[#231810]">{restaurant.name}</p>
+                          <p className="font-medium text-[#231810]">
+                            {restaurant.name}
+                          </p>
                           <p className="mt-1 text-xs text-black/45">
-                            Created {restaurant.createdAt?.slice(0, 10) ?? "recently"}
+                            Үүссэн{" "}
+                            {restaurant.createdAt?.slice(0, 10) ?? "саяхан"}
                           </p>
                         </div>
                       )}
@@ -262,35 +274,16 @@ export default function SuperadminDashboardPage() {
                             className="w-full rounded-[0.95rem] border border-black/10 bg-white px-4 py-3 text-sm outline-none"
                           />
                           <p className="text-xs text-black/45">
-                            URL: /menu/{draft.slug}
+                            Хаяг: /menu/{draft.slug}
                           </p>
                         </div>
                       ) : (
-                        <code className="text-sm text-black/60">{restaurant.slug}</code>
+                        <code className="text-sm text-black/60">
+                          {restaurant.slug}
+                        </code>
                       )}
                     </td>
-                    <td className="px-5 py-5">
-                      {isEditing ? (
-                        <select
-                          value={draft.plan}
-                          onChange={(event) =>
-                            updateDraft(
-                              restaurantId,
-                              "plan",
-                              event.target.value as RestaurantPlan,
-                            )
-                          }
-                          className="rounded-[0.95rem] border border-black/10 bg-white px-4 py-3 text-sm outline-none"
-                        >
-                          <option value="free">Free</option>
-                          <option value="pro">Pro</option>
-                        </select>
-                      ) : (
-                        <span className="rounded-full border border-black/10 px-3 py-1 text-xs text-black/60">
-                          {restaurant.plan ?? "free"}
-                        </span>
-                      )}
-                    </td>
+
                     <td className="px-5 py-5">
                       {isEditing ? (
                         <label className="inline-flex items-center gap-2 rounded-full border border-black/10 px-3 py-2 text-sm text-black/65">
@@ -305,21 +298,28 @@ export default function SuperadminDashboardPage() {
                               )
                             }
                           />
-                          Active
+                          Идэвхтэй
                         </label>
                       ) : (
                         <span
                           className="rounded-full px-3 py-1 text-xs"
                           style={{
                             background: restaurant.isActive
-                              ? "rgba(34, 197, 94, 0.1)"
-                              : "rgba(239, 68, 68, 0.1)",
-                            color: restaurant.isActive ? "#166534" : "#991b1b",
+                              ? "rgba(17,17,17,0.08)"
+                              : "rgba(17,17,17,0.04)",
+                            color: restaurant.isActive
+                              ? "#111111"
+                              : "rgba(17,17,17,0.58)",
                           }}
                         >
-                          {restaurant.isActive ? "Active" : "Inactive"}
+                          {restaurant.isActive ? "Идэвхтэй" : "Идэвхгүй"}
                         </span>
                       )}
+                    </td>
+                    <td className="px-5 py-5 text-sm text-[#231810]">
+                      {restaurant.restaurantType == "order_enabled"
+                        ? "Захиалга хийж болдог"
+                        : "Зөвхөн QR меню"}
                     </td>
                     <td className="px-5 py-5 text-sm text-[#231810]">
                       {restaurant.ordersToday}
@@ -334,7 +334,7 @@ export default function SuperadminDashboardPage() {
                               disabled={isSaving}
                               className="rounded-full bg-[#231810] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
                             >
-                              {isSaving ? "Saving..." : "Save"}
+                              {isSaving ? "Хадгалж байна..." : "Хадгалах"}
                             </button>
                             <button
                               type="button"
@@ -347,7 +347,7 @@ export default function SuperadminDashboardPage() {
                               }}
                               className="rounded-full border border-black/10 px-4 py-2 text-xs text-black/65"
                             >
-                              Cancel
+                              Болих
                             </button>
                           </>
                         ) : (
@@ -362,7 +362,7 @@ export default function SuperadminDashboardPage() {
                             }}
                             className="rounded-full border border-black/10 px-4 py-2 text-xs text-black/65"
                           >
-                            Edit
+                            Засах
                           </button>
                         )}
 
@@ -370,19 +370,13 @@ export default function SuperadminDashboardPage() {
                           href={`/superadmin/restaurants/${restaurantId}/menu`}
                           className="rounded-full border border-black/10 px-4 py-2 text-xs text-black/65"
                         >
-                          Manage Menu
-                        </Link>
-                        <Link
-                          href={`/superadmin/restaurants/${restaurantId}/theme`}
-                          className="rounded-full border border-black/10 px-4 py-2 text-xs text-black/65"
-                        >
-                          Theme
+                          Загвар
                         </Link>
                         <Link
                           href={`/superadmin/restaurants/${restaurantId}/staff`}
                           className="rounded-full border border-black/10 px-4 py-2 text-xs text-black/65"
                         >
-                          Staff
+                          Ажилтан
                         </Link>
                         <Link
                           href={`/superadmin/restaurants/${restaurantId}/qr`}
@@ -396,7 +390,9 @@ export default function SuperadminDashboardPage() {
                           disabled={isSaving}
                           className="rounded-full border border-black/10 px-4 py-2 text-xs text-black/65 disabled:opacity-60"
                         >
-                          {restaurant.isActive ? "Deactivate" : "Activate"}
+                          {restaurant.isActive
+                            ? "Идэвхгүй болгох"
+                            : "Идэвхжүүлэх"}
                         </button>
                       </div>
                     </td>
@@ -409,8 +405,8 @@ export default function SuperadminDashboardPage() {
 
         {!loading && restaurants.length === 0 ? (
           <div className="px-6 py-16 text-center text-sm text-black/55">
-            No restaurants yet. Create the first one to start building menus and
-            staff accounts.
+            Одоогоор ресторан алга байна. Эхний ресторанаа үүсгээд меню,
+            ажилтан, QR-аа тохируулж эхлээрэй.
           </div>
         ) : null}
       </section>

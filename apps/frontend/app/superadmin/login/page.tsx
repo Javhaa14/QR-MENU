@@ -36,7 +36,7 @@ export default function SuperadminLoginPage() {
 
       if (response.user.role !== "superadmin") {
         clearStoredAuth();
-        setError("Not authorized");
+        setError("Энэ хэсэгт супер админы эрх хэрэгтэй.");
         return;
       }
 
@@ -44,7 +44,9 @@ export default function SuperadminLoginPage() {
       router.replace(getNextPath());
     } catch (requestError) {
       setError(
-        requestError instanceof Error ? requestError.message : "Login failed.",
+        requestError instanceof Error
+          ? requestError.message
+          : "Нэвтрэхэд алдаа гарлаа.",
       );
     } finally {
       setLoading(false);
@@ -52,26 +54,25 @@ export default function SuperadminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f1e6d7] px-4 py-10">
-      <div className="mx-auto grid max-w-6xl gap-8 rounded-[2.2rem] border border-black/10 bg-white/70 p-6 shadow-velvet lg:grid-cols-[1.02fr_0.98fr] lg:p-8">
-        <section className="overflow-hidden rounded-[1.8rem] bg-[#1f1711] p-8 text-white">
+    <main className="min-h-screen bg-[#f7f7f5] px-4 py-10">
+      <div className="mx-auto grid max-w-6xl gap-8 rounded-[2.2rem] border border-black/10 bg-white p-6 shadow-[0_18px_40px_rgba(0,0,0,0.04)] lg:grid-cols-[1.02fr_0.98fr] lg:p-8">
+        <section className="overflow-hidden rounded-[1.8rem] bg-black p-8 text-white">
           <p className="text-xs uppercase tracking-[0.28em] text-white/45">
-            Superadmin
+            Супер админ
           </p>
           <h1 className="mt-4 max-w-lg font-display text-5xl leading-tight">
-            Operate the full QR menu fleet from one control plane.
+            Бүх ресторанаа нэг удирдлагын төвөөс хяна.
           </h1>
           <p className="mt-5 max-w-xl text-sm leading-7 text-white/65">
-            Create restaurants, provision staff accounts, manage menus and
-            themes, and keep restaurant operations visible without ever exposing
-            one tenant to another.
+            Ресторан үүсгэх, ажилтан нээх, меню ба загвар удирдах, QR ажиллагааг
+            нэг дороос цэгцтэй хянах супер админы самбар.
           </p>
           <div className="mt-10 grid gap-3 md:grid-cols-2">
             {[
-              "Restaurant lifecycle",
-              "Scoped staff provisioning",
-              "Theme previews",
-              "QR code operations",
+              "Ресторан үүсгэх",
+              "Ажилтан нээх",
+              "Студи хянах",
+              "QR удирдах",
             ].map((item) => (
               <div
                 key={item}
@@ -86,32 +87,32 @@ export default function SuperadminLoginPage() {
         <form onSubmit={handleSubmit} className="grid gap-5 p-4 lg:p-8">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-black/45">
-              Secure access
+              Хамгаалалттай нэвтрэх
             </p>
             <h2 className="mt-3 font-display text-4xl text-[#231810]">
-              Superadmin login
+              Супер админ нэвтрэх
             </h2>
           </div>
 
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-black/65">Email</span>
+            <span className="text-sm font-medium text-black/65">И-мэйл</span>
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="admin@qrmenu.com"
-              className="rounded-[1rem] border border-black/10 bg-white/75 px-4 py-3 outline-none"
+              placeholder="admin@qrmenu.mn"
+              className="rounded-[1rem] border border-black/10 bg-[#fafafa] px-4 py-3 outline-none"
               required
             />
           </label>
 
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-black/65">Password</span>
+            <span className="text-sm font-medium text-black/65">Нууц үг</span>
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="rounded-[1rem] border border-black/10 bg-white/75 px-4 py-3 outline-none"
+              className="rounded-[1rem] border border-black/10 bg-[#fafafa] px-4 py-3 outline-none"
               required
             />
           </label>
@@ -125,9 +126,9 @@ export default function SuperadminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="rounded-full bg-[#1f1711] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {loading ? "Signing in..." : "Enter control plane"}
+            {loading ? "Нэвтэрч байна..." : "Нэвтрэх"}
           </button>
         </form>
       </div>

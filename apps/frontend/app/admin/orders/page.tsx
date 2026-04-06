@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 
@@ -10,6 +11,13 @@ import { formatCurrency, timeAgo } from "@/lib/format";
 import { countOrdersByStatus, getRestaurantAdminContext } from "@/lib/portal";
 
 const statuses = ["pending", "preparing", "ready", "completed"] as const;
+const statusLabels: Record<Order["status"], string> = {
+  pending: "Шинэ",
+  preparing: "Бэлтгэж байна",
+  ready: "Бэлэн",
+  completed: "Дууссан",
+  cancelled: "Цуцлагдсан",
+};
 
 function getNextStatus(status: Order["status"]) {
   switch (status) {
@@ -63,6 +71,7 @@ function playNotificationSound() {
 }
 
 export default function AdminOrdersPage() {
+  const router = useRouter();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -86,6 +95,11 @@ export default function AdminOrdersPage() {
           }),
         ]);
 
+        if (restaurantResponse.restaurantType === "menu_only") {
+          router.replace("/admin/menu");
+          return;
+        }
+
         setRestaurant(restaurantResponse);
         setOrders(orderResponse);
         setError(null);
@@ -93,13 +107,13 @@ export default function AdminOrdersPage() {
         setError(
           requestError instanceof Error
             ? requestError.message
-            : "Unable to load orders.",
+            : "Захиалгуудыг ачаалж чадсангүй.",
         );
       }
     }
 
     void load();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
@@ -136,7 +150,7 @@ export default function AdminOrdersPage() {
         const exists = current.some((entry) => entry._id === order._id);
         return exists ? current : [order, ...current];
       });
-      setToast(`New order #${order._id?.slice(-6)}`);
+      setToast(`Шинэ захиалга #${order._id?.slice(-6)}`);
       playNotificationSound();
     });
 
@@ -164,8 +178,8 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     const pendingCount = countOrdersByStatus(orders, "pending");
     const baseTitle = restaurant?.name
-      ? `${restaurant.name} | Staff Orders`
-      : "Staff Orders | QR Menu";
+      ? `${restaurant.name} | Захиалга`
+      : "Захиалга | QR Menu";
 
     document.title =
       pendingCount > 0 ? `(${pendingCount}) ${baseTitle}` : baseTitle;
@@ -199,7 +213,7 @@ export default function AdminOrdersPage() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to update order.",
+          : "Захиалгын төлөв шинэчлэгдсэнгүй.",
       );
     }
   }
@@ -215,21 +229,21 @@ export default function AdminOrdersPage() {
 
   return (
     <section className="grid gap-6">
-      <header className="rounded-[2rem] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(104,180,154,0.18),transparent_32%),linear-gradient(135deg,#173233,#102021)] p-6 text-white shadow-velvet">
-        <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-          Live Orders
+      <header className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
+        <p className="text-xs uppercase tracking-[0.24em] text-black/45">
+          Шууд захиалга
         </p>
-        <h1 className="mt-3 font-display text-5xl">
-          {restaurant?.name ?? "Kitchen board"}
+        <h1 className="mt-3 font-display text-5xl text-black">
+          {restaurant?.name ?? "Гал тогооны самбар"}
         </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-white/68">
-          Real-time service flow for this restaurant only. Incoming orders appear
-          instantly and stay organized by kitchen stage.
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-black/60">
+          Энэ рестораны бодит цагийн захиалгын урсгал. Орж ирсэн захиалга
+          шууд харагдаж, гал тогооны үе шатуудаар ангилагдана.
         </p>
       </header>
 
       {toast ? (
-        <div className="rounded-[1.4rem] border border-emerald-500/20 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-200">
+        <div className="rounded-[1.4rem] border border-black/10 bg-black px-5 py-4 text-sm text-white">
           {toast}
         </div>
       ) : null}
@@ -244,11 +258,11 @@ export default function AdminOrdersPage() {
         {statuses.map((status) => (
           <section
             key={status}
-            className="rounded-[1.6rem] border border-white/8 bg-[#132426] p-4 text-white shadow-velvet"
+            className="rounded-[1.6rem] border border-black/10 bg-white p-4 text-black shadow-[0_12px_30px_rgba(0,0,0,0.04)]"
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-2xl capitalize">{status}</h2>
-              <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/55">
+              <h2 className="font-display text-2xl">{statusLabels[status]}</h2>
+              <span className="rounded-full border border-black/10 px-3 py-1 text-xs text-black/55">
                 {groupedOrders[status]?.length ?? 0}
               </span>
             </div>
@@ -264,11 +278,11 @@ export default function AdminOrdersPage() {
                 return (
                   <article
                     key={order._id}
-                    className="rounded-[1.2rem] border bg-[#0f1d1e] p-4"
+                    className="rounded-[1.2rem] border bg-[#fafafa] p-4"
                     style={{
                       borderColor: stalePending
                         ? "rgba(248, 113, 113, 0.55)"
-                        : "rgba(255,255,255,0.08)",
+                        : "rgba(17,17,17,0.08)",
                     }}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -276,12 +290,12 @@ export default function AdminOrdersPage() {
                         <p className="text-sm font-semibold">
                           #{order._id?.slice(-6)}
                         </p>
-                        <p className="text-xs text-white/45">
-                          Table {order.tableNumber || "Walk-in"}
+                        <p className="text-xs text-black/45">
+                          Ширээ {order.tableNumber || "Орох захиалга"}
                         </p>
                       </div>
-                      <p className="text-xs text-white/45">
-                        {order.createdAt ? timeAgo(order.createdAt) : "just now"}
+                      <p className="text-xs text-black/45">
+                        {order.createdAt ? timeAgo(order.createdAt) : "саяхан"}
                       </p>
                     </div>
 
@@ -292,11 +306,11 @@ export default function AdminOrdersPage() {
                           className="flex items-start justify-between gap-3 text-sm"
                         >
                           <div>
-                            <span className="font-medium text-white/88">
+                            <span className="font-medium text-black/88">
                               {item.quantity}× {item.name}
                             </span>
                             {item.note ? (
-                              <p className="text-xs text-white/45">{item.note}</p>
+                              <p className="text-xs text-black/45">{item.note}</p>
                             ) : null}
                           </div>
                         </div>
@@ -304,7 +318,7 @@ export default function AdminOrdersPage() {
                     </div>
 
                     <div className="mt-4 flex items-center justify-between text-sm font-semibold">
-                      <span>Total</span>
+                      <span>Нийт</span>
                       <span>{formatCurrency(order.totalPrice)}</span>
                     </div>
 
@@ -313,13 +327,13 @@ export default function AdminOrdersPage() {
                         <button
                           type="button"
                           onClick={() => void updateStatus(order._id ?? "", nextStatus)}
-                          className="rounded-full bg-[#7dc3a4] px-4 py-2 text-xs font-semibold text-[#102021]"
+                          className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white"
                         >
                           {nextStatus === "preparing"
-                            ? "Start preparing"
+                            ? "Бэлтгэж эхлэх"
                             : nextStatus === "ready"
-                              ? "Mark ready"
-                              : "Complete"}
+                              ? "Бэлэн болгох"
+                              : "Дуусгах"}
                         </button>
                       ) : null}
 
@@ -327,9 +341,9 @@ export default function AdminOrdersPage() {
                         <button
                           type="button"
                           onClick={() => void updateStatus(order._id ?? "", "cancelled")}
-                          className="rounded-full border border-red-500/20 px-4 py-2 text-xs text-red-200"
+                          className="rounded-full border border-black/10 px-4 py-2 text-xs text-black/65"
                         >
-                          Cancel
+                          Цуцлах
                         </button>
                       ) : null}
                     </div>
@@ -342,17 +356,17 @@ export default function AdminOrdersPage() {
       </div>
 
       {cancelledOrders.length > 0 ? (
-        <section className="rounded-[1.6rem] border border-white/8 bg-[#132426] p-5 text-white shadow-velvet">
-          <h2 className="font-display text-3xl">Cancelled</h2>
+        <section className="rounded-[1.6rem] border border-black/10 bg-white p-5 text-black shadow-[0_12px_30px_rgba(0,0,0,0.04)]">
+          <h2 className="font-display text-3xl">Цуцлагдсан</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {cancelledOrders.map((order) => (
               <article
                 key={order._id}
-                className="rounded-[1.2rem] border border-white/8 bg-[#0f1d1e] p-4"
+                className="rounded-[1.2rem] border border-black/10 bg-[#fafafa] p-4"
               >
                 <p className="text-sm font-semibold">#{order._id?.slice(-6)}</p>
-                <p className="mt-1 text-xs text-white/45">
-                  {order.createdAt ? timeAgo(order.createdAt) : "just now"}
+                <p className="mt-1 text-xs text-black/45">
+                  {order.createdAt ? timeAgo(order.createdAt) : "саяхан"}
                 </p>
               </article>
             ))}

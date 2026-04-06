@@ -21,13 +21,15 @@ import { resolveComponent } from "@/lib/componentRegistry";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 
 import { FloatingCartBar } from "./FloatingCartBar";
+import { MenuTopBar } from "./MenuTopBar";
 
 interface MenuRendererProps {
   restaurant: Restaurant;
   menu: Menu;
-  onAdd: ItemCardProps["onAdd"];
+  onAdd?: ItemCardProps["onAdd"];
   slug?: string;
   showCartBar?: boolean;
+  showAddButton?: boolean;
 }
 
 interface ResolvedSlots {
@@ -52,9 +54,21 @@ export function MenuRenderer({
   onAdd,
   slug,
   showCartBar = false,
+  showAddButton = true,
 }: MenuRendererProps) {
   const [slots, setSlots] = useState<ResolvedSlots>(defaultSlots);
   const [activeCategoryId, setActiveCategoryId] = useState(menu.categories[0]?._id);
+  const featuredItem = useMemo(
+    () =>
+      menu.categories
+        .flatMap((category) => category.items)
+        .filter((item) => item.isAvailable)
+        .find((item) => item.image) ??
+      menu.categories
+        .flatMap((category) => category.items)
+        .find((item) => item.isAvailable),
+    [menu.categories],
+  );
 
   useEffect(() => {
     setActiveCategoryId(menu.categories[0]?._id);
@@ -98,6 +112,10 @@ export function MenuRenderer({
   }, [restaurant.themeConfig.components]);
 
   const gridClassName = useMemo(() => {
+    if (restaurant.themeConfig.components.itemCard === "imageTop") {
+      return "grid gap-8 md:grid-cols-2";
+    }
+
     return restaurant.themeConfig.components.itemCard === "minimalList"
       ? "grid gap-3"
       : "grid gap-4 md:grid-cols-2 xl:grid-cols-3";
@@ -110,39 +128,78 @@ export function MenuRenderer({
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const jumpToElement = (id?: string) => {
+    if (!id) {
+      return;
+    }
+
+    document.getElementById(id)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   return (
     <ThemeProvider config={restaurant.themeConfig}>
       <main className="min-h-screen pb-24">
-        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-6 md:px-6 md:py-8">
-          <slots.Hero restaurant={restaurant} />
-          <slots.CategoryNav
-            categories={menu.categories}
-            activeCategoryId={activeCategoryId}
-            onSelect={handleCategorySelect}
+        <div className="mx-auto flex max-w-[1080px] flex-col px-4 md:px-6">
+          <MenuTopBar
+            restaurant={restaurant}
+            onMenuClick={() => jumpToElement("menu-category-nav")}
+            onSearchClick={() =>
+              jumpToElement(featuredItem ? "menu-featured" : activeCategoryId ? `category-${activeCategoryId}` : undefined)
+            }
           />
-          <div className="grid gap-10">
+
+          <div className="flex flex-col gap-10 pb-10 pt-5 md:pt-6">
+            <div id="menu-featured">
+              <slots.Hero
+                restaurant={restaurant}
+                featuredItem={featuredItem}
+              />
+            </div>
+
+            <div id="menu-category-nav">
+              <slots.CategoryNav
+                categories={menu.categories}
+                activeCategoryId={activeCategoryId}
+                onSelect={handleCategorySelect}
+              />
+            </div>
+
+            <div className="grid gap-12">
             {menu.categories.map((category) => (
               <section
                 key={category._id}
                 id={`category-${category._id}`}
-                className="scroll-mt-28 space-y-5"
+                className="scroll-mt-36 space-y-6"
               >
                 <slots.CategoryHeader category={category} />
                 <div className={gridClassName}>
                   {category.items
                     .filter((item) => item.isAvailable)
-                    .map((item) => (
-                      <slots.ItemCard
-                        key={item._id}
-                        item={item}
-                        onAdd={onAdd}
-                      />
-                    ))}
+                    .map((item) =>
+                      showAddButton && onAdd ? (
+                        <slots.ItemCard
+                          key={item._id}
+                          item={item}
+                          onAdd={onAdd}
+                        />
+                      ) : (
+                        <slots.ItemCard
+                          key={item._id}
+                          item={item}
+                          showAddButton={false}
+                        />
+                      ),
+                    )}
                 </div>
               </section>
             ))}
+            </div>
+
+            <slots.Footer restaurant={restaurant} />
           </div>
-          <slots.Footer restaurant={restaurant} />
         </div>
         {showCartBar && slug ? <FloatingCartBar slug={slug} /> : null}
       </main>

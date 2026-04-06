@@ -11,10 +11,24 @@ import {
   PricePill,
 } from "./shared";
 
-export default function ImageLeft({ item, onAdd }: ItemCardProps) {
+export default function ImageLeft({
+  item,
+  onAdd,
+  showAddButton = true,
+  viewportMode = "responsive",
+}: ItemCardProps) {
+  const isMobile = viewportMode === "mobile";
+
   return (
-    <CardSurface className="grid overflow-hidden md:grid-cols-[0.42fr_0.58fr]">
-      <ItemImage item={item} className="h-52 w-full md:h-full" />
+    <CardSurface
+      className={`grid overflow-hidden ${
+        isMobile ? "" : "md:grid-cols-[0.42fr_0.58fr]"
+      }`}
+    >
+      <ItemImage
+        item={item}
+        className={`w-full ${isMobile ? "h-52" : "h-52 md:h-full"}`}
+      />
       <div className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-2">
@@ -24,9 +38,11 @@ export default function ImageLeft({ item, onAdd }: ItemCardProps) {
           <PricePill price={item.price} currency={item.currency} />
         </div>
         <ItemMeta item={item} />
-        <div className="mt-auto flex justify-end">
-          <AddButton onClick={() => onAdd(item)} />
-        </div>
+        {showAddButton && onAdd ? (
+          <div className="mt-auto flex justify-end">
+            <AddButton onClick={() => onAdd(item)} />
+          </div>
+        ) : null}
       </div>
     </CardSurface>
   );

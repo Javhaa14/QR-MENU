@@ -12,10 +12,6 @@ export interface StoredAuthContext {
   userId: string;
 }
 
-export const DEFAULT_QR_TABLES = Array.from({ length: 12 }, (_value, index) =>
-  String(index + 1),
-);
-
 export function getStoredAuthContext(): StoredAuthContext | null {
   const token = getStoredToken();
   const payload = getAuthTokenPayload();
@@ -55,6 +51,15 @@ export function getSuperadminContext() {
   }
 
   return context;
+}
+
+export function sortTableValues(tables: string[]) {
+  return [...tables].sort((left, right) =>
+    left.localeCompare(right, undefined, {
+      numeric: true,
+      sensitivity: "base",
+    }),
+  );
 }
 
 export function isDateToday(value?: string) {

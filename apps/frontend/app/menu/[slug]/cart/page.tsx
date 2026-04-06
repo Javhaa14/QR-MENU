@@ -1,7 +1,9 @@
 import type { PublicMenuResponse } from "@qr-menu/shared-types";
+import { redirect } from "next/navigation";
 
 import { CartPageClient } from "@/components/menu/CartPageClient";
 import { serverApiFetch } from "@/lib/api";
+import { CartProvider } from "@/providers/CartProvider";
 
 function getTableFromSearchParams(
   value?: string | string[],
@@ -19,16 +21,22 @@ export default async function MenuCartPage({
   const data = await serverApiFetch<PublicMenuResponse>(
     `/public/menu/${params.slug}`,
     {
-      next: { revalidate: 60 },
+      cache: "no-store",
     },
   );
 
+  if (data.restaurant.restaurantType === "menu_only") {
+    redirect(`/menu/${params.slug}`);
+  }
+
   return (
-    <CartPageClient
-      restaurant={data.restaurant}
-      menu={data.menu}
-      slug={params.slug}
-      initialTableNumber={getTableFromSearchParams(searchParams?.table)}
-    />
+    <CartProvider>
+      <CartPageClient
+        restaurant={data.restaurant}
+        menu={data.menu}
+        slug={params.slug}
+        initialTableNumber={getTableFromSearchParams(searchParams?.table)}
+      />
+    </CartProvider>
   );
 }

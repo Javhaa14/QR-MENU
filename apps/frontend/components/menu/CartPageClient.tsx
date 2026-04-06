@@ -47,7 +47,7 @@ export function CartPageClient({
 
   async function placeOrder() {
     if (items.length === 0) {
-      setError("Your cart is empty.");
+      setError("Сагс хоосон байна.");
       return;
     }
 
@@ -76,7 +76,7 @@ export function CartPageClient({
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to place the order.",
+          : "Захиалга илгээж чадсангүй.",
       );
     } finally {
       setSubmitting(false);
@@ -89,15 +89,15 @@ export function CartPageClient({
         <main className="min-h-screen px-4 py-8 md:px-6">
           <div className="mx-auto grid max-w-2xl gap-6 rounded-[calc(var(--radius)+1rem)] border border-black/10 bg-white/70 p-8 text-center shadow-velvet">
             <p className="text-xs uppercase tracking-[0.24em] text-black/45">
-              Order confirmed
+              Захиалга баталгаажлаа
             </p>
-            <h1 className="font-display text-4xl text-ink">Thank you.</h1>
+            <h1 className="font-display text-4xl text-ink">Баярлалаа.</h1>
             <p className="text-sm leading-7 text-black/60">
-              Your order has been sent to the kitchen for {restaurant.name}.
+              Таны захиалга {restaurant.name} рестораны гал тогоо руу илгээгдлээ.
             </p>
             <div className="rounded-[calc(var(--radius)+0.25rem)] border border-black/10 bg-black/[0.04] px-5 py-4">
               <p className="text-xs uppercase tracking-[0.24em] text-black/45">
-                Order ID
+                Захиалгын дугаар
               </p>
               <p className="mt-2 text-lg font-semibold text-ink">{orderId}</p>
             </div>
@@ -105,7 +105,7 @@ export function CartPageClient({
               href={`/menu/${slug}`}
               className="mx-auto rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-medium text-white"
             >
-              Back to menu
+              Меню рүү буцах
             </Link>
           </div>
         </main>
@@ -121,24 +121,24 @@ export function CartPageClient({
             <div className="mb-6 flex items-end justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-black/45">
-                  Review order
+                  Захиалга шалгах
                 </p>
                 <h1 className="mt-2 font-display text-4xl text-ink">
-                  Your cart
+                  Таны сагс
                 </h1>
               </div>
               <Link
                 href={`/menu/${slug}`}
                 className="text-sm font-medium text-[var(--color-primary)]"
               >
-                Back to menu
+                Меню рүү буцах
               </Link>
             </div>
 
             <div className="grid gap-4">
               {items.length === 0 ? (
                 <div className="rounded-[calc(var(--radius)+0.2rem)] border border-dashed border-black/10 px-5 py-10 text-center text-sm text-black/55">
-                  Your cart is empty. Add a few dishes from the menu first.
+                  Сагс хоосон байна. Эхлээд менюгээс хоол нэмнэ үү.
                 </div>
               ) : (
                 items.map((entry) => (
@@ -179,14 +179,14 @@ export function CartPageClient({
                     </div>
                     <label className="mt-4 grid gap-2">
                       <span className="text-xs uppercase tracking-[0.2em] text-black/45">
-                        Note
+                        Тайлбар
                       </span>
                       <input
                         value={entry.note}
                         onChange={(event) =>
                           updateNote(entry.item._id ?? "", event.target.value)
                         }
-                        placeholder="No onions, extra spicy..."
+                        placeholder="Сонгиногүй, илүү халуун..."
                         className="rounded-[calc(var(--radius)-0.1rem)] border border-black/10 bg-white/75 px-4 py-3 text-sm outline-none"
                       />
                     </label>
@@ -200,28 +200,28 @@ export function CartPageClient({
             <div className="space-y-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-white/55">
-                  Summary
+                  Дүгнэлт
                 </p>
-                <h2 className="mt-2 font-display text-3xl">Place order</h2>
+                <h2 className="mt-2 font-display text-3xl">Захиалга илгээх</h2>
               </div>
               <label className="grid gap-2">
                 <span className="text-xs uppercase tracking-[0.24em] text-white/55">
-                  Table number
+                  Ширээний дугаар
                 </span>
                 <input
                   value={tableNumber}
                   onChange={(event) => setTableNumber(event.target.value)}
-                  placeholder="Optional"
+                  placeholder="Хэрэв байгаа бол"
                   className="rounded-[calc(var(--radius)-0.1rem)] border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/45"
                 />
               </label>
               <div className="rounded-[calc(var(--radius)+0.1rem)] border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between text-sm text-white/70">
-                  <span>Items</span>
+                  <span>Бүтээгдэхүүн</span>
                   <span>{lineCount}</span>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-base font-semibold">
-                  <span>Total</span>
+                  <span>Нийт</span>
                   <span>{formatCurrency(totalPrice)}</span>
                 </div>
               </div>
@@ -240,10 +240,10 @@ export function CartPageClient({
                     "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-accent) 68%, var(--color-primary) 32%))",
                 }}
               >
-                {submitting ? "Placing order..." : "Place order"}
+                {submitting ? "Захиалга илгээж байна..." : "Захиалга илгээх"}
               </button>
               <div className="rounded-[calc(var(--radius)-0.1rem)] border border-white/10 bg-white/5 px-4 py-3 text-xs leading-6 text-white/55">
-                Ordering against menu <strong className="text-white/80">{menu.name}</strong>.
+                Захиалга илгээхэд бэлэн боллоо.
               </div>
             </div>
           </aside>
