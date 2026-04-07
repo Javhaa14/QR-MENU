@@ -30,10 +30,11 @@ export class MenuWriteGuard implements CanActivate {
       return true;
     }
 
+    const req = request as any;
     const restaurantId =
-      request.params?.restaurantId ??
-      request.body?.restaurantId ??
-      request.query?.restaurantId;
+      req.params?.restaurantId ??
+      req.body?.restaurantId ??
+      req.query?.restaurantId;
 
     if (!restaurantId) {
       throw new ForbiddenException("Restaurant scope is required.");

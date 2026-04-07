@@ -28,7 +28,7 @@ export class PublicController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const buffer = await this.publicService.generateQrBuffer(slug);
-    response.setHeader("Content-Type", "image/png");
+    response.set("Content-Type", "image/png");
     return new StreamableFile(buffer);
   }
 
@@ -39,7 +39,7 @@ export class PublicController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const buffer = await this.publicService.generateQrBuffer(slug, tableNumber);
-    response.setHeader("Content-Type", "image/png");
+    response.set("Content-Type", "image/png");
     return new StreamableFile(buffer);
   }
 }
