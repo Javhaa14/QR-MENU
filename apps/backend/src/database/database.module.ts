@@ -10,6 +10,7 @@ import { MongooseModule } from "@nestjs/mongoose";
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const uri = configService.get<string>("MONGODB_URI");
+        console.log("Connecting to:", uri?.replace(/:([^:@]+)@/, ':****@'));
         if (!uri) {
           throw new Error("MONGODB_URI is not defined in environment variables");
         }
