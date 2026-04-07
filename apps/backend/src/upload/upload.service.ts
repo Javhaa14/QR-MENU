@@ -7,10 +7,19 @@ export class UploadService {
   constructor(private readonly configService: ConfigService) {
     const cloudinaryUrl = this.configService.get<string>("CLOUDINARY_URL");
 
-    if (cloudinaryUrl) {
-      process.env.CLOUDINARY_URL = cloudinaryUrl;
-      cloudinary.config({ secure: true });
-    }
+
+if (cloudinaryUrl) {
+  const match = cloudinaryUrl.match(/^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/);
+  if (match) {
+    cloudinary.config({
+      api_key: match[1],
+      api_secret: match[2],
+      cloud_name: match[3],
+      secure: true,
+    });
+  }
+}
+
   }
 
   async uploadImage(file: Express.Multer.File) {
