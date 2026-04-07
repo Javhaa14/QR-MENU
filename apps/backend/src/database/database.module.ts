@@ -8,9 +8,18 @@ import { MongooseModule } from "@nestjs/mongoose";
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>("MONGODB_URI"),
-      }),
+      useFactory: (configService: ConfigService) => {
+        const uri = configService.get<string>("MONGODB_URI");
+        if (!uri) {
+          throw new Error("MONGODB_URI is not defined in environment variables");
+        }
+        return {
+          uri,
+          serverSelectionTimeoutMS: 5000,
+          socketTimeoutMS: 10000,
+          bufferCommands: false,
+        };
+      },
     }),
   ],
   exports: [MongooseModule],
