@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory, raw } from "@nestjs/mongoose";
 import type { HydratedDocument } from "mongoose";
 
-import type { ThemeConfig } from "@qr-menu/shared-types";
+import type { BrandConfig, ThemeConfig } from "@qr-menu/shared-types";
 
 import { DEFAULT_THEME_CONFIG } from "./theme.defaults";
 
@@ -19,15 +19,33 @@ export class Restaurant {
   @Prop({ trim: true, default: "" })
   logo!: string;
 
+  @Prop({ type: String, ref: "Template", index: true })
+  templateId?: string;
+
   @Prop({
     type: raw({
       _id: false,
-      colors: raw({
-        primary: { type: String, required: true },
-        bg: { type: String, required: true },
-        text: { type: String, required: true },
-        accent: { type: String, required: true },
-      }),
+      primary: { type: String, required: true },
+      bg: { type: String, required: true },
+      text: { type: String, required: true },
+      accent: { type: String, required: true },
+      font: { type: String, required: true },
+      borderRadius: { type: String, required: true },
+      darkMode: { type: Boolean, default: false },
+      showImages: { type: Boolean, default: true },
+      heroImage: { type: String, default: "" },
+    }),
+    required: false,
+  })
+  brandConfig?: BrandConfig;
+
+  @Prop({
+    type: raw({
+      _id: false,
+      primary: { type: String, required: true },
+      bg: { type: String, required: true },
+      text: { type: String, required: true },
+      accent: { type: String, required: true },
       font: { type: String, required: true },
       borderRadius: { type: String, required: true },
       darkMode: { type: Boolean, default: false },

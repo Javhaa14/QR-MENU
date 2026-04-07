@@ -7,6 +7,8 @@ import { CreateRestaurantDto } from "./dto/create-restaurant.dto";
 import { UpdateRestaurantDto } from "./dto/update-restaurant.dto";
 import { UpdateTablesDto } from "./dto/update-tables.dto";
 import { UpdateThemeDto } from "./dto/update-theme.dto";
+import { UpdateBrandDto } from "./dto/update-brand.dto";
+import { SetTemplateDto } from "./dto/set-template.dto";
 import { RestaurantService } from "./restaurant.service";
 
 @Controller("restaurants")
@@ -41,6 +43,42 @@ export class RestaurantController {
     @Body() dto: UpdateThemeDto,
   ) {
     return this.restaurantService.updateTheme(user.restaurantId!, dto);
+  }
+
+  @Roles("restaurant_admin")
+  @Patch("me/brand")
+  updateOwnBrand(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdateBrandDto,
+  ) {
+    return this.restaurantService.updateBrand(user.restaurantId!, dto);
+  }
+
+  @Roles("restaurant_admin")
+  @Patch("me/template")
+  setOwnTemplate(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SetTemplateDto,
+  ) {
+    return this.restaurantService.setTemplate(user.restaurantId!, dto);
+  }
+
+  @Roles("superadmin")
+  @Patch(":id/brand")
+  updateBrand(
+    @Param("id") restaurantId: string,
+    @Body() dto: UpdateBrandDto,
+  ) {
+    return this.restaurantService.updateBrand(restaurantId, dto);
+  }
+
+  @Roles("superadmin")
+  @Patch(":id/template")
+  setTemplate(
+    @Param("id") restaurantId: string,
+    @Body() dto: SetTemplateDto,
+  ) {
+    return this.restaurantService.setTemplate(restaurantId, dto);
   }
 
   @Roles("superadmin")

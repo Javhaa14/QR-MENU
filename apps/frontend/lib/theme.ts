@@ -1,4 +1,4 @@
-import type { SlotName, ThemeConfig } from "@qr-menu/shared-types";
+import type { BrandConfig, SlotName, Template, ThemeConfig } from "@qr-menu/shared-types";
 
 export const FONT_OPTIONS = [
   "Syne",
@@ -9,18 +9,20 @@ export const FONT_OPTIONS = [
   "Manrope",
 ] as const;
 
-export const DEFAULT_THEME: ThemeConfig = {
-  colors: {
-    primary: "#c06b3e",
-    bg: "#fffaf2",
-    text: "#1d140f",
-    accent: "#9ac7b8",
-  },
+export const DEFAULT_BRAND: BrandConfig = {
+  primary: "#c06b3e",
+  bg: "#fffaf2",
+  text: "#1d140f",
+  accent: "#9ac7b8",
   font: "Syne",
   borderRadius: "lg",
   darkMode: false,
   showImages: true,
   heroImage: "",
+};
+
+export const DEFAULT_THEME: ThemeConfig = {
+  ...DEFAULT_BRAND,
   components: {
     hero: "fullBleed",
     categoryNav: "scrollTabs",
@@ -72,25 +74,36 @@ export function getSlotVariantLabel(slot: SlotName, variant: string) {
   return SLOT_VARIANT_LABELS[slot]?.[variant] ?? variant;
 }
 
-export function sanitizeThemeConfig(value: unknown): ThemeConfig {
-  const input = (value ?? {}) as Partial<ThemeConfig> & {
-    colors?: Partial<ThemeConfig["colors"]> & { _id?: unknown };
-    components?: Partial<ThemeConfig["components"]> & { _id?: unknown };
-    _id?: unknown;
+export function mergeThemeConfig(
+  template: Template,
+  brand?: BrandConfig,
+): ThemeConfig {
+  const brandConfig = brand ?? template.defaultBrand;
+  return {
+    ...brandConfig,
+    components: template.slotConfig,
   };
+}
+
+export function sanitizeThemeConfig(value: unknown): ThemeConfig {
+  const input = (value ?? {}) as any;
+
+  // Handle both old nested structure and new flattened structure
+  const primary = input.primary ?? input.colors?.primary ?? DEFAULT_BRAND.primary;
+  const bg = input.bg ?? input.colors?.bg ?? DEFAULT_BRAND.bg;
+  const text = input.text ?? input.colors?.text ?? DEFAULT_BRAND.text;
+  const accent = input.accent ?? input.colors?.accent ?? DEFAULT_BRAND.accent;
 
   return {
-    colors: {
-      primary: input.colors?.primary ?? DEFAULT_THEME.colors.primary,
-      bg: input.colors?.bg ?? DEFAULT_THEME.colors.bg,
-      text: input.colors?.text ?? DEFAULT_THEME.colors.text,
-      accent: input.colors?.accent ?? DEFAULT_THEME.colors.accent,
-    },
-    font: input.font ?? DEFAULT_THEME.font,
-    borderRadius: input.borderRadius ?? DEFAULT_THEME.borderRadius,
-    darkMode: input.darkMode ?? DEFAULT_THEME.darkMode,
-    showImages: input.showImages ?? DEFAULT_THEME.showImages,
-    heroImage: input.heroImage ?? DEFAULT_THEME.heroImage,
+    primary,
+    bg,
+    text,
+    accent,
+    font: input.font ?? DEFAULT_BRAND.font,
+    borderRadius: input.borderRadius ?? DEFAULT_BRAND.borderRadius,
+    darkMode: input.darkMode ?? DEFAULT_BRAND.darkMode,
+    showImages: input.showImages ?? DEFAULT_BRAND.showImages,
+    heroImage: input.heroImage ?? DEFAULT_BRAND.heroImage,
     components: {
       hero: input.components?.hero ?? DEFAULT_THEME.components.hero,
       categoryNav:

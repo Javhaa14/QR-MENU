@@ -63,10 +63,10 @@ export function ThemeProvider({
     <div
       style={
         {
-          "--color-primary": config.colors.primary,
-          "--color-bg": config.colors.bg,
-          "--color-text": config.colors.text,
-          "--color-accent": config.colors.accent,
+          "--color-primary": config.primary,
+          "--color-bg": config.bg,
+          "--color-text": config.text,
+          "--color-accent": config.accent,
           "--radius": resolveRadiusValue(config.borderRadius),
           "--font-body": "'Inter', system-ui, sans-serif",
           "--font-display":

@@ -7,6 +7,7 @@ import { Restaurant, RestaurantSchema } from "../database/schemas/restaurant.sch
 import { User, UserSchema } from "../database/schemas/user.schema";
 import { RestaurantController } from "./restaurant.controller";
 import { RestaurantService } from "./restaurant.service";
+import { TemplateModule } from "../template/template.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { RestaurantService } from "./restaurant.service";
       { name: User.name, schema: UserSchema },
       { name: Menu.name, schema: MenuSchema },
     ]),
+    TemplateModule,
   ],
   controllers: [RestaurantController],
   providers: [RestaurantService],

@@ -17,7 +17,15 @@ import {
   Typography,
 } from "antd";
 
-import type { Menu, MenuItem, Restaurant, SlotName, ThemeConfig } from "@qr-menu/shared-types";
+import type {
+  BrandConfig,
+  Menu,
+  MenuItem,
+  Restaurant,
+  SlotName,
+  Template,
+  ThemeConfig,
+} from "@qr-menu/shared-types";
 
 import {
   EditableMenuPreview,
@@ -27,10 +35,12 @@ import { apiFetch } from "@/lib/api";
 import { getSlotVariants } from "@/lib/componentRegistry";
 import { getRestaurantAdminContext, getSuperadminContext } from "@/lib/portal";
 import {
+  DEFAULT_BRAND,
   DEFAULT_THEME,
   FONT_OPTIONS,
   SLOT_LABELS,
   getSlotVariantLabel,
+  mergeThemeConfig,
   sanitizeThemeConfig,
 } from "@/lib/theme";
 
@@ -76,7 +86,16 @@ function resolveStudioPaths(mode: StudioMode, restaurantId?: string) {
       mode === "superadmin"
         ? `/restaurants/${resolvedRestaurantId}/theme`
         : "/restaurants/me/theme",
+    brandPath:
+      mode === "superadmin"
+        ? `/restaurants/${resolvedRestaurantId}/brand`
+        : "/restaurants/me/brand",
+    templatePath:
+      mode === "superadmin"
+        ? `/restaurants/${resolvedRestaurantId}/template`
+        : "/restaurants/me/template",
     menusPath: `/restaurants/${resolvedRestaurantId}/menus`,
+    templatesPath: "/templates",
   };
 }
 
@@ -84,17 +103,17 @@ function getStudioCopy(mode: StudioMode) {
   if (mode === "superadmin") {
     return {
       eyebrow: "Нэгдсэн студи",
-      title: "Меню ба загварын удирдлага",
+      title: "Загвар ба Меню",
       description:
-        "Рестораны өнгө, фонт, бүтэц, ангилал, хоол бүрийг нэг дэлгэц дээрээс засч, зочинд яг яаж харагдахыг бодит утасны preview дээр харна.",
+        "Загварын бүтэц (Template) сонгож, брэндийн өнгө төрхийг тохируулна. Бодит меню Preview дээр контентыг шууд засварлана.",
     };
   }
 
   return {
     eyebrow: "Рестораны студи",
-    title: "Бодит меню харагдац дээрээс засварлах",
+    title: "Дизайн ба меню удирдлага",
     description:
-      "Өөрийн рестораны загвар болон менюг нэг дороос шинэчилж, яг зочин харах меню дээр дарж modal-аар засварлана.",
+      "1-рт Загвараа сонгоно, 2-рт Өөрийн брэнд өнгө төрхийг өгнө. Сүүлчийн алхамд меню контентоо Preview дээрээсээ шууд засварлаарай.",
   };
 }
 
@@ -107,7 +126,7 @@ function normalizeRequestError(
   }
 
   if (requestError.message === "Forbidden resource") {
-    return "Энэ үйлдлийг хийх эрх хүрэхгүй байна. Хэрэв зураг upload хийж байсан бол backend role тохиргоог шалгана уу.";
+    return "Энэ үйлдлийг хийх эрх хүрэхгүй байна.";
   }
 
   return requestError.message;
@@ -122,7 +141,9 @@ export function RestaurantStudio({
 }) {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [theme, setTheme] = useState<ThemeConfig>(DEFAULT_THEME);
+  const [activeStep, setActiveStep] = useState<"template" | "brand">("template");
   const [loading, setLoading] = useState(true);
   const [savingTheme, setSavingTheme] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -159,11 +180,14 @@ export function RestaurantStudio({
       try {
         setLoading(true);
 
-        const [restaurantResponse, menuResponse] = await Promise.all([
+        const [restaurantResponse, menuResponse, templatesResponse] = await Promise.all([
           apiFetch<Restaurant>(paths.restaurantPath, {
             token: paths.token,
           }),
           apiFetch<Menu[]>(paths.menusPath, {
+            token: paths.token,
+          }),
+          apiFetch<Template[]>(paths.templatesPath, {
             token: paths.token,
           }),
         ]);
@@ -180,6 +204,12 @@ export function RestaurantStudio({
         });
         setTheme(nextTheme);
         setMenu(menuResponse[0] ?? null);
+        setTemplates(templatesResponse);
+        
+        if (restaurantResponse.templateId) {
+          setActiveStep("brand");
+        }
+
         setError(null);
       } catch (requestError) {
         if (!cancelled) {
@@ -217,68 +247,85 @@ export function RestaurantStudio({
     );
   }, [menu]);
 
-  function updateThemeColor(
-    key: keyof ThemeConfig["colors"],
-    value: string,
+  function updateBrandProperty(
+    key: keyof BrandConfig,
+    value: string | boolean,
   ) {
     setTheme((current) => ({
       ...current,
-      colors: {
-        ...current.colors,
-        [key]: value,
-      },
+      [key]: value,
     }));
   }
 
-  function setSlotVariant(slot: SlotName, variant: string) {
-    setTheme((current) => ({
-      ...current,
-      components: {
-        ...current.components,
-        [slot]: variant,
-      },
-    }));
-  }
-
-  function applyMenuResponse(nextMenu: Menu) {
-    setMenu(nextMenu);
-  }
-
-  async function saveTheme() {
+  async function selectTemplate(template: Template) {
     const paths = resolveStudioPaths(mode, restaurantId);
-
-    if (!paths) {
-      return;
-    }
-
-    setSavingTheme(true);
-    setError(null);
+    if (!paths) return;
 
     try {
-      const updatedRestaurant = await apiFetch<Restaurant>(paths.themePath, {
+      setLoading(true);
+      const updatedRestaurant = await apiFetch<Restaurant>(paths.templatePath, {
         token: paths.token,
         method: "PATCH",
-        body: sanitizeThemeConfig(theme),
+        body: { templateId: template._id },
       });
 
       const nextTheme = sanitizeThemeConfig(updatedRestaurant.themeConfig);
-
       setRestaurant({
         ...updatedRestaurant,
         themeConfig: nextTheme,
       });
       setTheme(nextTheme);
-      setStatusMessage("Загвар амжилттай хадгалагдлаа.");
+      setActiveStep("brand");
+      setStatusMessage(`"${template.name}" загвар амжилттай сонгогдлоо.`);
     } catch (requestError) {
-      setError(
-        normalizeRequestError(
-          requestError,
-          "Загварыг хадгалж чадсангүй.",
-        ),
-      );
+      setError(normalizeRequestError(requestError, "Загвар сольж чадсангүй."));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveBrand() {
+    const paths = resolveStudioPaths(mode, restaurantId);
+    if (!paths) return;
+
+    setSavingTheme(true);
+    setError(null);
+
+    const brandData: BrandConfig = {
+      primary: theme.primary,
+      bg: theme.bg,
+      text: theme.text,
+      accent: theme.accent,
+      font: theme.font,
+      borderRadius: theme.borderRadius,
+      darkMode: theme.darkMode,
+      showImages: theme.showImages,
+      heroImage: theme.heroImage,
+    };
+
+    try {
+      const updatedRestaurant = await apiFetch<Restaurant>(paths.brandPath, {
+        token: paths.token,
+        method: "PATCH",
+        body: brandData,
+      });
+
+      const nextTheme = sanitizeThemeConfig(updatedRestaurant.themeConfig);
+      setRestaurant({
+        ...updatedRestaurant,
+        themeConfig: nextTheme,
+      });
+      setTheme(nextTheme);
+      setStatusMessage("Брэндийн тохиргоо хадгалагдлаа.");
+    } catch (requestError) {
+      setError(normalizeRequestError(requestError, "Хадгалж чадсангүй."));
     } finally {
       setSavingTheme(false);
     }
+  }
+
+  function applyMenuResponse(nextMenu: Menu) {
+    setMenu(nextMenu);
   }
 
   async function addCategory(name: string) {
@@ -306,10 +353,7 @@ export function RestaurantStudio({
     category: Menu["categories"][number],
   ) {
     const paths = resolveStudioPaths(mode, restaurantId);
-
-    if (!paths || !menu?._id) {
-      return;
-    }
+    if (!paths || !menu?._id) return;
 
     const updatedMenu = await apiFetch<Menu>(
       `${paths.menusPath}/${menu._id}/categories/${categoryId}`,
@@ -329,10 +373,7 @@ export function RestaurantStudio({
 
   async function deleteCategory(categoryId: string) {
     const paths = resolveStudioPaths(mode, restaurantId);
-
-    if (!paths || !menu?._id) {
-      return;
-    }
+    if (!paths || !menu?._id) return;
 
     const updatedMenu = await apiFetch<Menu>(
       `${paths.menusPath}/${menu._id}/categories/${categoryId}`,
@@ -348,10 +389,7 @@ export function RestaurantStudio({
 
   async function addItem(categoryId: string, draft: PendingItemState) {
     const paths = resolveStudioPaths(mode, restaurantId);
-
-    if (!paths || !menu?._id) {
-      return;
-    }
+    if (!paths || !menu?._id) return;
 
     if (!draft.name.trim() || !draft.price.trim()) {
       setError("Хоолны нэр болон үнийг бөглөнө үү.");
@@ -385,10 +423,7 @@ export function RestaurantStudio({
     item: Menu["categories"][number]["items"][number],
   ) {
     const paths = resolveStudioPaths(mode, restaurantId);
-
-    if (!paths || !menu?._id || !item._id) {
-      return;
-    }
+    if (!paths || !menu?._id || !item._id) return;
 
     const updatedMenu = await apiFetch<Menu>(
       `${paths.menusPath}/${menu._id}/categories/${categoryId}/items/${item._id}`,
@@ -414,10 +449,7 @@ export function RestaurantStudio({
 
   async function deleteItem(categoryId: string, itemId?: string) {
     const paths = resolveStudioPaths(mode, restaurantId);
-
-    if (!paths || !menu?._id || !itemId) {
-      return;
-    }
+    if (!paths || !menu?._id || !itemId) return;
 
     const updatedMenu = await apiFetch<Menu>(
       `${paths.menusPath}/${menu._id}/categories/${categoryId}/items/${itemId}`,
@@ -433,10 +465,7 @@ export function RestaurantStudio({
 
   async function uploadImage(file: File) {
     const paths = resolveStudioPaths(mode, restaurantId);
-
-    if (!paths) {
-      throw new Error("Нэвтрэлтийн мэдээлэл олдсонгүй.");
-    }
+    if (!paths) throw new Error("Нэвтрэлтийн мэдээлэл олдсонгүй.");
 
     const formData = new FormData();
     formData.append("file", file);
@@ -455,17 +484,13 @@ export function RestaurantStudio({
       setError(null);
       await action();
     } catch (requestError) {
-      setError(
-        normalizeRequestError(
-          requestError,
-          "Үйлдлийг гүйцэтгэж чадсангүй.",
-        ),
-      );
+      setError(normalizeRequestError(requestError, "Үйлдлийг гүйцэтгэж чадсангүй."));
     }
   }
 
   return (
     <section className="grid gap-6 text-[#111111]">
+      {/* Header card remains as modified in previous step */}
       <Card className="!rounded-[2rem] shadow-[0_18px_50px_rgba(0,0,0,0.06)]">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
@@ -478,12 +503,24 @@ export function RestaurantStudio({
             >
               {restaurant?.name ?? "Ресторан"}
             </Title>
-            <Title level={4} className="!mb-0 !mt-3 !text-black/72">
-              {copy.title}
-            </Title>
-            <Paragraph className="!mb-0 !mt-4 !text-sm !leading-7 !text-black/60">
-              {copy.description}
-            </Paragraph>
+            
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button 
+                type={activeStep === "template" ? "primary" : "default"}
+                onClick={() => setActiveStep("template")}
+                className="!rounded-full"
+              >
+                1. Загвар сонгох
+              </Button>
+              <Button 
+                type={activeStep === "brand" ? "primary" : "default"}
+                onClick={() => setActiveStep("brand")}
+                className="!rounded-full"
+                disabled={!restaurant?.templateId && activeStep === "template"}
+              >
+                2. Дизайн & Меню
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
@@ -498,68 +535,73 @@ export function RestaurantStudio({
               icon={<SaveOutlined />}
               size="large"
               loading={savingTheme}
-              onClick={() => void saveTheme()}
+              disabled={activeStep === "template"}
+              onClick={() => void saveBrand()}
               className="!h-full !min-h-[88px] !rounded-[1.35rem]"
             >
-              {savingTheme ? "Загвар хадгалж байна..." : "Загварыг хадгалах"}
+              {savingTheme ? "Хадгалж байна..." : "Өөрчлөлтийг хадгалах"}
             </Button>
           </div>
         </div>
       </Card>
 
-      {statusMessage ? (
-        <Alert
-          type="success"
-          showIcon
-          message={statusMessage}
-          className="!rounded-[1.3rem]"
-        />
-      ) : null}
-
-      {error ? (
-        <Alert
-          type="error"
-          showIcon
-          message={error}
-          className="!rounded-[1.3rem]"
-        />
-      ) : null}
+      {statusMessage && (
+        <Alert type="success" showIcon message={statusMessage} className="!rounded-[1.3rem]" />
+      )}
+      {error && (
+        <Alert type="error" showIcon message={error} className="!rounded-[1.3rem]" />
+      )}
 
       {loading ? (
         <Card className="!rounded-[1.7rem]">
-          <div className="py-16 text-center text-sm text-black/55">
-            Студийг бэлдэж байна...
-          </div>
+          <div className="py-16 text-center text-sm text-black/55">Студийг бэлдэж байна...</div>
         </Card>
-      ) : null}
-
-      {!loading ? (
+      ) : activeStep === "template" ? (
+        <div className="grid gap-6">
+          <Title level={3} className="!font-display !mb-0">Загварын сан</Title>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {templates.map((tpl) => (
+              <Card
+                key={tpl._id}
+                hoverable
+                className={`!rounded-[1.5rem] overflow-hidden border-2 transition-all ${
+                  restaurant?.templateId === tpl._id ? "border-[#c06b3e] shadow-lg" : "border-transparent"
+                }`}
+                cover={<img alt={tpl.name} src={tpl.thumbnail} className="h-48 object-cover" />}
+                onClick={() => selectTemplate(tpl)}
+              >
+                <Card.Meta 
+                  title={<div className="flex items-center justify-between">
+                    <span>{tpl.name}</span>
+                    {restaurant?.templateId === tpl._id && <Tag color="orange">Сонгосон</Tag>}
+                  </div>}
+                  description={tpl.description} 
+                />
+              </Card>
+            ))}
+          </div>
+        </div>
+      ) : (
         <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
           <Card className="h-fit !rounded-[1.7rem] xl:sticky xl:top-4">
-            <div className="flex items-center justify-between gap-3">
+             <div className="flex items-center justify-between gap-3">
               <div>
-                <Text className="!text-xs !font-semibold !uppercase !tracking-[0.24em] !text-black/45">
-                  Дизайны тохиргоо
+                <Text className="!text-[10px] !font-bold !uppercase !tracking-[0.2em] !text-black/40">
+                  Брэнд тохиргоо
                 </Text>
-                <Title
-                  level={3}
-                  className="!mb-0 !mt-2 !font-display !text-black"
-                >
-                  Antd Studio
+                <Title level={4} className="!mb-0 !mt-1 !font-display !text-black">
+                  Өнгө төрх
                 </Title>
               </div>
-              <Tag className="!mr-0 !rounded-full !px-3 !py-1">
-                Modal edit
-              </Tag>
             </div>
 
             <div className="mt-6 grid gap-4">
               {(
                 [
-                  ["primary", "Үндсэн өнгө", theme.colors.primary],
-                  ["bg", "Арын өнгө", theme.colors.bg],
-                  ["text", "Текстийн өнгө", theme.colors.text],
-                  ["accent", "Акцент өнгө", theme.colors.accent],
+                  ["primary", "Үндсэн өнгө", theme.primary],
+                  ["bg", "Арын өнгө", theme.bg],
+                  ["text", "Текстийн өнгө", theme.text],
+                  ["accent", "Акцент өнгө", theme.accent],
                 ] as const
               ).map(([key, label, value]) => (
                 <label key={key} className="grid gap-2">
@@ -570,13 +612,13 @@ export function RestaurantStudio({
                     <ColorPicker
                       value={value}
                       onChangeComplete={(nextColor) =>
-                        updateThemeColor(key, nextColor.toHexString())
+                        updateBrandProperty(key, nextColor.toHexString())
                       }
                     />
                     <Input
                       value={value}
                       onChange={(event) =>
-                        updateThemeColor(key, event.target.value)
+                        updateBrandProperty(key, event.target.value)
                       }
                       size="large"
                     />
@@ -592,16 +634,8 @@ export function RestaurantStudio({
                 </Text>
                 <Select
                   value={theme.font}
-                  onChange={(value) =>
-                    setTheme((current) => ({
-                      ...current,
-                      font: value,
-                    }))
-                  }
-                  options={FONT_OPTIONS.map((font) => ({
-                    label: font,
-                    value: font,
-                  }))}
+                  onChange={(value) => updateBrandProperty("font", value)}
+                  options={FONT_OPTIONS.map((font) => ({ label: font, value: font }))}
                   size="large"
                 />
               </label>
@@ -612,12 +646,7 @@ export function RestaurantStudio({
                 </Text>
                 <Select
                   value={theme.borderRadius}
-                  onChange={(value) =>
-                    setTheme((current) => ({
-                      ...current,
-                      borderRadius: value as ThemeConfig["borderRadius"],
-                    }))
-                  }
+                  onChange={(value) => updateBrandProperty("borderRadius", value)}
                   options={[
                     { label: "Тэгш", value: "none" },
                     { label: "Бага", value: "sm" },
@@ -631,90 +660,22 @@ export function RestaurantStudio({
             </div>
 
             <div className="mt-6 grid gap-3">
-              <div className="flex items-center justify-between rounded-[1.1rem] border border-black/8 bg-[#fafafa] px-4 py-3">
-                <div>
-                  <div className="text-sm font-medium text-black/78">
-                    Зураг харуулах
-                  </div>
-                  <div className="text-xs text-black/48">
-                    Public menu item зураг
-                  </div>
-                </div>
+              <div className="flex items-center justify-between rounded-[1.1rem] border border-black/8 bg-[#fafafa] px-4 py-2">
+                <Text className="!text-sm !text-black/70">Зураг харуулах</Text>
                 <Switch
-                  checked={theme.showImages ?? true}
-                  onChange={(checked) =>
-                    setTheme((current) => ({
-                      ...current,
-                      showImages: checked,
-                    }))
-                  }
+                  checked={theme.showImages}
+                  onChange={(checked) => updateBrandProperty("showImages", checked)}
                 />
               </div>
 
-              <div className="flex items-center justify-between rounded-[1.1rem] border border-black/8 bg-[#fafafa] px-4 py-3">
-                <div>
-                  <div className="text-sm font-medium text-black/78">
-                    Бараан горимын тэмдэглэгээ
-                  </div>
-                  <div className="text-xs text-black/48">
-                    Theme token дээр dark flag хадгална
-                  </div>
-                </div>
+              <div className="flex items-center justify-between rounded-[1.1rem] border border-black/8 bg-[#fafafa] px-4 py-2">
+                <Text className="!text-sm !text-black/70">Бараан горим</Text>
                 <Switch
-                  checked={theme.darkMode ?? false}
-                  onChange={(checked) =>
-                    setTheme((current) => ({
-                      ...current,
-                      darkMode: checked,
-                    }))
-                  }
+                  checked={theme.darkMode}
+                  onChange={(checked) => updateBrandProperty("darkMode", checked)}
                 />
               </div>
             </div>
-
-            <label className="mt-6 grid gap-2">
-              <Text className="!text-[11px] !font-semibold !uppercase !tracking-[0.18em] !text-black/45">
-                Hero зураг
-              </Text>
-              <Input
-                value={theme.heroImage ?? ""}
-                onChange={(event) =>
-                  setTheme((current) => ({
-                    ...current,
-                    heroImage: event.target.value,
-                  }))
-                }
-                placeholder="https://..."
-                size="large"
-              />
-            </label>
-
-            <Card
-              size="small"
-              className="mt-6 !rounded-[1.3rem] !bg-[#fafafa]"
-            >
-              <Text className="!text-[11px] !font-semibold !uppercase !tracking-[0.18em] !text-black/45">
-                Компонентын хувилбар
-              </Text>
-              <div className="mt-4 grid gap-4">
-                {(Object.keys(SLOT_LABELS) as SlotName[]).map((slot) => (
-                  <label key={slot} className="grid gap-2">
-                    <Text className="!font-medium !text-black/78">
-                      {SLOT_LABELS[slot]}
-                    </Text>
-                    <Select
-                      value={theme.components[slot]}
-                      onChange={(value) => setSlotVariant(slot, value)}
-                      options={getSlotVariants(slot).map((variant) => ({
-                        label: getSlotVariantLabel(slot, variant),
-                        value: variant,
-                      }))}
-                      size="large"
-                    />
-                  </label>
-                ))}
-              </div>
-            </Card>
           </Card>
 
           <Card className="min-w-0 !rounded-[1.7rem] !bg-[#fcfcfb]">
@@ -724,40 +685,21 @@ export function RestaurantStudio({
                   Бодит меню preview
                 </Text>
                 <Paragraph className="!mb-0 !mt-2 !text-sm !leading-6 !text-black/60">
-                  Preview нь public menu-тэй ижил байна. Ангилал эсвэл item дээр
-                  дарж modal-аар засварлана.
+                  Preview нь public menu-тэй ижил байна. Ангилал эсвэл item дээр дарж засварлана.
                 </Paragraph>
               </div>
-
-              <Tag className="!mr-0 !rounded-full !px-4 !py-2">
-                {restaurant?.restaurantType === "menu_only"
-                  ? "Зөвхөн меню"
-                  : "Захиалгатай меню"}
-              </Tag>
             </div>
 
             {previewRestaurant && menu ? (
               <EditableMenuPreview
                 restaurant={previewRestaurant}
                 menu={menu}
-                onAddCategory={(name) =>
-                  runMenuAction(() => addCategory(name))
-                }
-                onSaveCategory={(categoryId, category) =>
-                  runMenuAction(() => saveCategory(categoryId, category))
-                }
-                onDeleteCategory={(categoryId) =>
-                  runMenuAction(() => deleteCategory(categoryId))
-                }
-                onAddItem={(categoryId, draft) =>
-                  runMenuAction(() => addItem(categoryId, draft))
-                }
-                onSaveItem={(categoryId, item) =>
-                  runMenuAction(() => saveItem(categoryId, item))
-                }
-                onDeleteItem={(categoryId, itemId) =>
-                  runMenuAction(() => deleteItem(categoryId, itemId))
-                }
+                onAddCategory={(name) => runMenuAction(() => addCategory(name))}
+                onSaveCategory={(categoryId, category) => runMenuAction(() => saveCategory(categoryId, category))}
+                onDeleteCategory={(categoryId) => runMenuAction(() => deleteCategory(categoryId))}
+                onAddItem={(categoryId, draft) => runMenuAction(() => addItem(categoryId, draft))}
+                onSaveItem={(categoryId, item) => runMenuAction(() => saveItem(categoryId, item))}
+                onDeleteItem={(categoryId, itemId) => runMenuAction(() => deleteItem(categoryId, itemId))}
                 onUploadImage={uploadImage}
               />
             ) : (
@@ -765,7 +707,7 @@ export function RestaurantStudio({
             )}
           </Card>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }

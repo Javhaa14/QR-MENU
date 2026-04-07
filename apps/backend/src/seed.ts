@@ -67,10 +67,77 @@ async function seed() {
     { upsert: true },
   );
 
-  console.log("Superadmin user ensured:");
-  console.log("email: admin@qrmenu.com");
-  console.log("password: changeme123");
-  console.log("role: superadmin");
+  console.log("Superadmin user ensured.");
+
+  const templates = db.collection("templates");
+  
+  const modernBistro = {
+    name: "Modern Bistro",
+    thumbnail: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
+    description: "A bold, image-heavy layout perfect for high-end dining and visual storytelling.",
+    slotConfig: {
+      hero: "fullBleed",
+      categoryNav: "scrollTabs",
+      itemCard: "magazine",
+      categoryHeader: "banner",
+      footer: "minimal",
+    },
+    defaultBrand: {
+      primary: "#c06b3e",
+      bg: "#fffaf2",
+      text: "#1d140f",
+      accent: "#9ac7b8",
+      font: "Syne",
+      borderRadius: "lg",
+      darkMode: false,
+      showImages: true,
+      heroImage: "",
+    },
+    active: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const minimalist = {
+    name: "Minimalist",
+    thumbnail: "https://images.unsplash.com/photo-1494346480775-936a9f0d0877?auto=format&fit=crop&w=800&q=80",
+    description: "Clean, fast, and text-focused. Great for cafes and quick-service menus.",
+    slotConfig: {
+      hero: "logoOnly",
+      categoryNav: "dropdown",
+      itemCard: "minimalList",
+      categoryHeader: "minimal",
+      footer: "hidden",
+    },
+    defaultBrand: {
+      primary: "#000000",
+      bg: "#ffffff",
+      text: "#000000",
+      accent: "#666666",
+      font: "Space Grotesk",
+      borderRadius: "none",
+      darkMode: false,
+      showImages: false,
+      heroImage: "",
+    },
+    active: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await templates.updateOne(
+    { name: modernBistro.name },
+    { $set: modernBistro },
+    { upsert: true }
+  );
+
+  await templates.updateOne(
+    { name: minimalist.name },
+    { $set: minimalist },
+    { upsert: true }
+  );
+
+  console.log("Default templates seeded.");
 }
 
 void seed()

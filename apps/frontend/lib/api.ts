@@ -1,12 +1,9 @@
-const FALLBACK_API_URL = "http://localhost:3001";
 
 export const clientApiUrl =
-  process.env.NEXT_PUBLIC_API_URL ?? FALLBACK_API_URL;
+  process.env.NEXT_PUBLIC_API_URL 
 
 export const serverApiUrl =
-  process.env.API_URL ??
-  process.env.NEXT_PUBLIC_API_URL ??
-  FALLBACK_API_URL;
+  process.env.NEXT_PUBLIC_API_URL 
 
 type ApiFetchOptions = Omit<RequestInit, "body"> & {
   body?: RequestInit["body"] | object | unknown[];
@@ -78,7 +75,10 @@ export async function apiFetch<T>(
     nextHeaders.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${clientApiUrl}${path}`, {
+  const baseUrl = clientApiUrl?.replace(/\/$/, "") ?? "";
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  const response = await fetch(`${baseUrl}${cleanPath}`, {
     ...init,
     headers: nextHeaders,
     body: requestBody,
@@ -95,6 +95,9 @@ type ServerFetchOptions = RequestInit & {
 };
 
 export async function serverApiFetch<T>(path: string, init?: ServerFetchOptions) {
-  const response = await fetch(`${serverApiUrl}${path}`, init);
+  const baseUrl = serverApiUrl?.replace(/\/$/, "") ?? "";
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  const response = await fetch(`${baseUrl}${cleanPath}`, init);
   return parseApiResponse<T>(response);
 }

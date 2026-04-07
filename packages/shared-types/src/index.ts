@@ -26,13 +26,31 @@ export interface ThemeColors {
   accent: string;
 }
 
-export interface ThemeConfig {
-  colors: ThemeColors;
+export interface BrandConfig {
+  primary: string;
+  bg: string;
+  text: string;
+  accent: string;
   font: string;
   borderRadius: ThemeRadius;
-  darkMode?: boolean;
+  darkMode: boolean;
   showImages?: boolean;
   heroImage?: string;
+}
+
+export interface Template {
+  _id?: string;
+  name: string;
+  thumbnail: string;
+  description: string;
+  slotConfig: Record<SlotName, string>;
+  defaultBrand: BrandConfig;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ThemeConfig extends BrandConfig {
   components: Record<SlotName, string>;
 }
 
@@ -41,6 +59,8 @@ export interface Restaurant {
   slug: string;
   name: string;
   logo?: string;
+  templateId?: string;
+  brandConfig?: BrandConfig;
   themeConfig: ThemeConfig;
   plan?: RestaurantPlan;
   restaurantType: RestaurantType;

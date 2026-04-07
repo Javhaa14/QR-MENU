@@ -8,21 +8,7 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 
-import type { ThemeConfig } from "@qr-menu/shared-types";
-
-class ThemeColorsDto {
-  @IsHexColor()
-  primary!: string;
-
-  @IsHexColor()
-  bg!: string;
-
-  @IsHexColor()
-  text!: string;
-
-  @IsHexColor()
-  accent!: string;
-}
+import type { ThemeConfig, ThemeRadius } from "@qr-menu/shared-types";
 
 class ThemeComponentsDto {
   @IsString()
@@ -42,15 +28,23 @@ class ThemeComponentsDto {
 }
 
 export class UpdateThemeDto {
-  @ValidateNested()
-  @Type(() => ThemeColorsDto)
-  colors!: ThemeColorsDto;
+  @IsHexColor()
+  primary!: string;
+
+  @IsHexColor()
+  bg!: string;
+
+  @IsHexColor()
+  text!: string;
+
+  @IsHexColor()
+  accent!: string;
 
   @IsString()
   font!: string;
 
   @IsIn(["none", "sm", "md", "lg", "full"])
-  borderRadius!: ThemeConfig["borderRadius"];
+  borderRadius!: ThemeRadius;
 
   @IsOptional()
   @IsBoolean()

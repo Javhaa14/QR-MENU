@@ -10,6 +10,7 @@ import { MenuModule } from "./menu/menu.module";
 import { OrderModule } from "./order/order.module";
 import { PublicModule } from "./public/public.module";
 import { RestaurantModule } from "./restaurant/restaurant.module";
+import { TemplateModule } from "./template/template.module";
 import { UploadModule } from "./upload/upload.module";
 
 @Module({
@@ -21,6 +22,7 @@ import { UploadModule } from "./upload/upload.module";
     DatabaseModule,
     AuthModule,
     RestaurantModule,
+    TemplateModule,
     MenuModule,
     OrderModule,
     PublicModule,

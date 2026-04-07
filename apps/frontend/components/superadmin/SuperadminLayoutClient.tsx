@@ -8,7 +8,8 @@ import { clearStoredAuth, getAuthTokenPayload, getStoredToken } from "@/lib/auth
 import { PortalBackButton } from "@/components/admin/PortalBackButton";
 
 const navItems = [
-  { href: "/superadmin", label: "Хянах самбар" },
+  { href: "/superadmin", label: "Рестораны удирдлага" },
+  { href: "/superadmin/templates", label: "Загварын сан" },
   { href: "/superadmin/restaurants/new", label: "Шинэ ресторан" },
 ];
 

@@ -14,6 +14,10 @@ import { CreateRestaurantDto } from "./dto/create-restaurant.dto";
 import { UpdateRestaurantDto } from "./dto/update-restaurant.dto";
 import { UpdateTablesDto } from "./dto/update-tables.dto";
 import { UpdateThemeDto } from "./dto/update-theme.dto";
+import { UpdateBrandDto } from "./dto/update-brand.dto";
+import { SetTemplateDto } from "./dto/set-template.dto";
+import { TemplateService } from "../template/template.service";
+import type { BrandConfig, ThemeConfig } from "@qr-menu/shared-types";
 
 function normalizeTables(tables: string[]) {
   return Array.from(
@@ -36,7 +40,26 @@ export class RestaurantService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(Menu.name)
     private readonly menuModel: Model<MenuDocument>,
+    private readonly templateService: TemplateService,
   ) {}
+
+  private async mergeThemeConfig(
+    templateId?: string,
+    brandConfig?: BrandConfig,
+    currentThemeConfig?: ThemeConfig,
+  ): Promise<ThemeConfig> {
+    if (!templateId) {
+      return currentThemeConfig ?? DEFAULT_THEME_CONFIG;
+    }
+
+    const template = await this.templateService.findOne(templateId);
+    const brand = brandConfig ?? template.defaultBrand;
+
+    return {
+      ...brand,
+      components: template.slotConfig,
+    };
+  }
 
   async listRestaurants(): Promise<RestaurantListItem[]> {
     const restaurants = await this.restaurantModel
@@ -78,6 +101,8 @@ export class RestaurantService {
       slug: restaurant.slug,
       name: restaurant.name,
       logo: restaurant.logo,
+      templateId: restaurant.templateId,
+      brandConfig: restaurant.brandConfig,
       themeConfig: restaurant.themeConfig,
       plan: restaurant.plan,
       restaurantType: restaurant.restaurantType ?? "menu_only",
@@ -98,6 +123,11 @@ export class RestaurantService {
 
   async createRestaurant(dto: CreateRestaurantDto) {
     const slug = await this.generateUniqueSlug(dto.slug ?? dto.name);
+    
+    // Default values
+    let themeConfig = DEFAULT_THEME_CONFIG;
+    let templateId: string | undefined;
+
     const restaurant = await this.restaurantModel.create({
       slug,
       name: dto.name,
@@ -106,7 +136,8 @@ export class RestaurantService {
       restaurantType: dto.restaurantType ?? "menu_only",
       tables: [],
       isActive: true,
-      themeConfig: DEFAULT_THEME_CONFIG,
+      templateId,
+      themeConfig,
     });
 
     await this.menuModel.create({
@@ -145,16 +176,45 @@ export class RestaurantService {
     return restaurant;
   }
 
+  async setTemplate(restaurantId: string, dto: SetTemplateDto) {
+    const restaurant = await this.findByIdOrThrow(restaurantId);
+    const template = await this.templateService.findOne(dto.templateId);
+
+    restaurant.templateId = template.id;
+    // When changing template, we merge immediately to keep themeConfig in sync
+    restaurant.themeConfig = await this.mergeThemeConfig(
+      template.id,
+      restaurant.brandConfig,
+    );
+
+    await restaurant.save();
+    return restaurant;
+  }
+
+  async updateBrand(restaurantId: string, dto: UpdateBrandDto) {
+    const restaurant = await this.findByIdOrThrow(restaurantId);
+    restaurant.brandConfig = dto;
+
+    // Merge logic
+    restaurant.themeConfig = await this.mergeThemeConfig(
+      restaurant.templateId,
+      dto,
+      restaurant.themeConfig,
+    );
+
+    await restaurant.save();
+    return restaurant;
+  }
+
   async updateTheme(restaurantId: string, dto: UpdateThemeDto) {
+    // Keep this for legacy / superadmin full control if needed, 
+    // but update it to sync with brandConfig/template if we want.
     const restaurant = await this.findByIdOrThrow(restaurantId);
     restaurant.themeConfig = {
-      colors: dto.colors,
-      font: dto.font,
-      borderRadius: dto.borderRadius,
+      ...dto,
       darkMode: dto.darkMode ?? false,
       showImages: dto.showImages ?? true,
       heroImage: dto.heroImage ?? "",
-      components: dto.components,
     };
 
     await restaurant.save();
